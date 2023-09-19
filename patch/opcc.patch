@@ -17,4 +17,4 @@
 {"sst",        64, INSN_CLASS_I, "d,o(s)",    MATCH_SST, MASK_SST, match_opcode, INSN_DREF|INSN_8_BYTE },
 
 {"chdom",       0, INSN_CLASS_I, "",          MATCH_CHDOM, MASK_CHDOM|MASK_RD|MASK_RS1|MASK_IMM, match_opcode, 0},
-{"retdom",      0, INSN_CLASS_I, "",          MATCH_RETDOM, MASK_OM|MASK_RD|MASK_RS1|MASK_IMM, match_opcode, 0},
+{"retdom",      0, INSN_CLASS_I, "",          MATCH_RETDOM, MASK_RETDOM|MASK_RD|MASK_RS1|MASK_IMM, match_opcode, 0},
