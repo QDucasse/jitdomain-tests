@@ -10,7 +10,7 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
 ISA ?= rv64ima_zicsr_zifencei_xjitdomain
 
-TESTS := t-csr
+TESTS := t-csr t-typed
 BUILD := build
 
 ENV_SRCS := env/crt.S env/harness.c env/stubs.S

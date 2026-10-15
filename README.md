@@ -52,8 +52,8 @@ leaves the other CSRs at their reset values.
 | ID | Test | State |
 |---|---|---|
 | T-ACC | | todo |
-| T-TYPED | | todo |
-| T-ORD | | todo |
+| T-TYPED | `t-typed` | done; also covers T-ORD |
+| T-ORD | `t-typed` | done |
 | T-CSR | `t-csr` | done |
 | T-LPAD | | todo |
 | T-DRS | | todo |
