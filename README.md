@@ -54,7 +54,7 @@ leaves the other CSRs at their reset values.
 | T-ACC | | todo |
 | T-TYPED | | todo |
 | T-ORD | | todo |
-| T-CSR | | todo |
+| T-CSR | `t-csr` | done |
 | T-LPAD | | todo |
 | T-DRS | | todo |
 | T-TRAP | | todo |
