@@ -1,0 +1,5 @@
+--target=riscv64-unknown-elf
+-march=rv64ima_zicsr_zifencei
+-std=gnu11
+-ffreestanding
+-Ienv
