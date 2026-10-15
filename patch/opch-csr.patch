@@ -1,3 +1,0 @@
-/* JITDomain */
-#define CSR_DMPCFG0 0x3f0
-#define CSR_DMPCFG1 0x3f1
