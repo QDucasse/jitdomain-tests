@@ -51,7 +51,7 @@ leaves the other CSRs at their reset values.
 
 | ID | Test | State |
 |---|---|---|
-| T-ACC | | todo |
+| T-ACC | `t-acc` | done: every `(e, k, rights)` for load, store, AMO, LR and fetch; SCHK; locked PMP in M mode |
 | T-TYPED | `t-typed` | done; also covers T-ORD |
 | T-ORD | `t-typed` | done |
 | T-CSR | `t-csr` | done |
