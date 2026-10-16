@@ -42,6 +42,12 @@ void keysrc_reset(void)
     key_set(k, k);
 }
 
+// No translation: S mode runs image code where it is
+void *keysrc_s_alias(void *code)
+{
+  return code;
+}
+
 // PMP keys stay in place: with EN = 0 they are ignored
 void keysrc_disable(void)
 {

@@ -70,8 +70,10 @@ values.
 With `KEYSRC=sv39`, `dom_reset()` builds an identity map of the image, the pages and the DRS with 4 KiB leaves, all
 RWX, A and D set: the image has key 0, `pages[k]` key `k`, the DRS key 7, and the stacks are not mapped. S mode cannot
 fetch from U pages, so there are two copies of the tables, one with U leaves and one with S leaves; `run_lower()` sets
-`satp` for the stub's privilege. `key_set(k, key)` retags only `pages[k]`. With `dstatus.EN = 0` the key bits are
-reserved again, so `dom_disable()` clears every key first. One PMP entry covers the map, and its key is ignored.
+`satp` for the stub's privilege. Both trees also map the image's 1 GiB region as one S page at `0xc0000000`, so that S
+mode can run image code while the U tables are active, as a trap handler delegated to S mode must
+(`keysrc_s_alias()`). `key_set(k, key)` retags only `pages[k]`. With `dstatus.EN = 0` the key bits are reserved again,
+so `dom_disable()` clears every key first. One PMP entry covers the map, and its key is ignored.
 
 M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYSRC=pmp`.
 
@@ -86,7 +88,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
 | T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
 | T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
-| T-TRAP | | todo |
+| T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry, an interrupt at a pad, traps into S mode |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | | RTL only |
 | T-DEPUTY | | todo |

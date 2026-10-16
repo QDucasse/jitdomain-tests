@@ -70,6 +70,9 @@ void keysrc_reset(void);
 void keysrc_disable(void);   // what dstatus.EN = 0 requires of the tags
 void key_set(int page, int key);
 extern uint64_t keysrc_satp[2];   // satp for U and S stubs, read by run_lower()
+// Where S mode can run image code while a U stub's tables are active, as a
+// trap handler delegated to S mode must
+void *keysrc_s_alias(void *code);
 
 // Domain configuration; the rights matrix is kept in a shadow copy and written
 // with rights_apply()

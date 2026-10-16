@@ -6,13 +6,18 @@
 //
 // S mode cannot fetch from U pages, so there are two copies of the tables, one
 // with U pages and one with S pages, and run_lower() picks the one for the
-// stub's privilege. One PMP entry covers [0, drs_top) with RWX; its key is
+// stub's privilege. Both also map the image's 1 GiB region at S_ALIAS as one
+// S page, so that S mode can run image code, a trap handler for instance,
+// while the U-mode tables are active. One PMP entry covers [0, drs_top) with RWX; its key is
 // ignored under translation.
 
 #include "env.h"
 #include "sv39.h"
 
 #define PMP_RWX_TOR 0x0f
+
+#define S_ALIAS 0xc0000000UL
+#define GIGA_MASK ((1UL << 30) - 1)
 
 extern char LOAD_ADDR[];
 
@@ -33,6 +38,11 @@ static void leaf_key(uintptr_t va, int key)
   }
 }
 
+void *keysrc_s_alias(void *code)
+{
+  return (void *)(S_ALIAS + ((uintptr_t)code & GIGA_MASK));
+}
+
 uint64_t *sv39_root(int t)
 {
   return tables[t][0];
@@ -51,6 +61,7 @@ void keysrc_reset(void)
   for (int t = 0; t < 2; t++) {
     memset(tables[t], 0, sizeof(tables[t]));
     tables[t][0][(base >> 30) & 511] = pte((uintptr_t)tables[t][1], PTE_V);
+    tables[t][0][(S_ALIAS >> 30) & 511] = pte(base & ~GIGA_MASK, PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D);
     tables[t][1][(base >> 21) & 511] = pte((uintptr_t)tables[t][2], PTE_V);
     for (uintptr_t va = base; va < top; va += PAGE_SIZE)
       *leaf(t, va) = pte(va, PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D | (t == 0 ? PTE_U : 0));
