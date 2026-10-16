@@ -12,20 +12,24 @@ make run-t-acc                # one test
 make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_xjitdomain
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
+make run SIM=qemu             # on QEMU's spike machine
 ```
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `KEYSRC` | `pmp` | where keys come from: `pmp` (PMP entries, through `dmpcfg`) or `sv39` (Sv39 PTEs) |
 | `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
+| `SIM` | `spike` | simulator for `run` and `run-<test>`: `spike` or `qemu` |
 | `QUICK` | `0` | `1`: T-ACC tries three rights values per cell (none, exactly the needed right, all but it) instead of eight |
 
 ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
 console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
 
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
-default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp;
-`t-lpad` detects Zicfilp at run time and skips its ELP checks without it, as on CVA6. Each test prints
+default `../riscv-isa-sim/install/bin/spike`). `SIM=qemu` needs a QEMU built from the `jitdomain` branch of the QEMU
+fork (by default `../qemu/build-jitdomain/qemu-system-riscv64`, set with `QEMU=`), run on the `spike` machine with
+`num-pmp-regions=8`, Zicfilp and `xjitdomain` (`QEMU_CPU=`). Spike runs with `--pmpregions=8`, CVA6's PMP count, and
+with Zicfilp; `t-lpad` detects Zicfilp at run time and skips its ELP checks without it, as on CVA6. Each test prints
 `<name>: N checks, M failures` and exits with a non-zero code on failure.
 
 ## Layout

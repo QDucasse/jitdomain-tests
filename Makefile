@@ -24,6 +24,19 @@ SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
 ISA ?= rv64imac_zicsr_zifencei_zicfilp_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
+QEMU ?= $(abspath ../qemu/build-jitdomain/qemu-system-riscv64)
+QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,xjitdomain=true
+QEMU_FLAGS := -M spike -nographic -bios none -cpu $(QEMU_CPU) -kernel
+
+# SIM: simulator for run and run-<test>, spike or qemu
+SIM ?= spike
+RUN_spike := $(SPIKE) $(SPIKE_FLAGS)
+RUN_qemu := $(QEMU) $(QEMU_FLAGS)
+RUN := $(RUN_$(SIM))
+ifeq ($(RUN),)
+$(error SIM=$(SIM) is not supported)
+endif
+
 TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy
 # Tests that only apply to one key source
 TESTS_sv39 := t-pte
@@ -44,13 +57,13 @@ $(BUILD):
 run: all
 	@fail=0; \
 	for t in $(TESTS); do \
-	  if $(SPIKE) $(SPIKE_FLAGS) $(BUILD)/$$t.elf; then echo "PASS $$t"; \
+	  if $(RUN) $(BUILD)/$$t.elf; then echo "PASS $$t"; \
 	  else echo "FAIL $$t"; fail=1; fi; \
 	done; \
 	exit $$fail
 
 run-%: $(BUILD)/%.elf
-	$(SPIKE) $(SPIKE_FLAGS) $<
+	$(RUN) $<
 
 clean:
 	rm -rf build
