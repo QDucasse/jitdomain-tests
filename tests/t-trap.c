@@ -1,5 +1,5 @@
 // T-TRAP: traps save {curdom, dpend} in xPD/xPPEND and enter DOM0; xret
-// restores both. Covers ecall, ebreak and a fault inside DOM1, resuming DOM1
+// restores both and clears xPPEND. Covers ecall, ebreak and a fault inside DOM1, resuming DOM1
 // after a fault, mret and sret restoring a pending entry, an interrupt taken
 // while an entry is pending, and traps into S mode, domain faults included.
 //
@@ -10,7 +10,13 @@
 #include "env.h"
 
 STUB(call_1_5); STUB(pad_ecall); STUB(pad_ebreak); STUB(pad_load); STUB(nopad);
-STUB(s_handler); STUB(s_sret); STUB(stub_ecall);
+STUB(s_handler); STUB(s_sret); STUB(s_sret_s); STUB(pad_s); STUB(stub_ecall);
+
+typedef struct {
+  uint64_t xdstatus, curdom;
+} seen_t;
+
+seen_t m_mret_pad(uint64_t mdstatus);
 
 #define GATE(from, to) (1ULL << (8 * (from) + (to)))
 #define CODE1 (PAGE(1) + 0x100)
@@ -206,11 +212,32 @@ static void check_supervisor(void)
   CHECK_EQ(last_trap.mdstatus, xpd(4));
 }
 
+// xret clears xPPEND once it has restored it, so that a second xret cannot
+// restore a stale entry; xPD is kept. mret and sret return to a pad in M and S
+// mode, which read mdstatus and dstatus right after it.
+static void check_xret_clears(void)
+{
+  setup();
+  seen_t seen = m_mret_pad(xppend(1, 5));
+  CHECK_EQ(seen.xdstatus, 0);
+  CHECK_EQ(seen.curdom, 1);
+  seen = m_mret_pad(xpd(3));
+  CHECK_EQ(seen.xdstatus, xpd(3));
+  CHECK_EQ(seen.curdom, 3);
+  CHECK_EQ(csr_read(CSR_CURDOM), 0);
+
+  CHECK_OK(run_s(keysrc_s_alias(s_sret_s), 0, (uint64_t)keysrc_s_alias(pad_s),
+                 DSTATUS_BASE | xppend(1, 5)), PRV_S);
+  CHECK_EQ(reg(20), DSTATUS_BASE);   // s4, dstatus
+  CHECK_EQ(reg(18), 1);   // s2, curdom
+}
+
 int main(void)
 {
   check_exceptions();
   check_mret_pending();
   check_interrupt_pending();
   check_supervisor();
+  check_xret_clears();
   return report("t-trap");
 }

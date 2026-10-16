@@ -21,12 +21,16 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
-ISA ?= rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_xjitdomain
+ISA ?= rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 QEMU ?= $(abspath ../qemu/build-jitdomain/qemu-system-riscv64)
-# Svade, as on Spike and CVA6: a clear A or D bit raises a page fault
-QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,svade=true,svadu=false,xjitdomain=true
+# Svade, as on Spike and CVA6: a clear A or D bit raises a page fault.
+# Smrnmi with Smdbltrp, so that t-rnmi can raise an RNMI through a double trap;
+# the vectors are fixed in env/crt.S.
+RNMI_VEC := $(shell printf '0x%x' $$(($(LOAD_ADDR) + 4)))
+RNMI_EXC_VEC := $(shell printf '0x%x' $$(($(LOAD_ADDR) + 8)))
+QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,svade=true,svadu=false,xjitdomain=true,smrnmi=true,smdbltrp=true,rnmi-interrupt-vector=$(RNMI_VEC),rnmi-exception-vector=$(RNMI_EXC_VEC)
 QEMU_FLAGS := -M spike -nographic -bios none -cpu $(QEMU_CPU) -kernel
 
 # SIM: simulator for run and run-<test>, spike or qemu
@@ -38,7 +42,7 @@ ifeq ($(RUN),)
 $(error SIM=$(SIM) is not supported)
 endif
 
-TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy
+TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi
 # Tests that only apply to one key source
 TESTS_sv39 := t-pte
 TESTS += $(TESTS_$(KEYSRC))

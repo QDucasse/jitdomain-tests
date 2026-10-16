@@ -9,7 +9,7 @@ Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU an
 ```
 make run                      # build everything and run it on Spike
 make run-t-acc                # one test
-make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_xjitdomain
+make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
 make run SIM=qemu             # on QEMU's spike machine
@@ -28,9 +28,12 @@ console and the exit code, so the same file runs on Spike, QEMU (`spike` machine
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
 default `../riscv-isa-sim/install/bin/spike`). `SIM=qemu` needs a QEMU built from the `jitdomain` branch of the QEMU
 fork (by default `../qemu/build-jitdomain/qemu-system-riscv64`, set with `QEMU=`), run on the `spike` machine with
-`num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6) and `xjitdomain` (`QEMU_CPU=`).
-Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp; `t-lpad` detects Zicfilp at run time and skips its
-ELP checks without it, as on CVA6. Each test prints `<name>: N checks, M failures` and exits with a non-zero code on
+`num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6), Smrnmi and Smdbltrp (so that
+`t-rnmi` can raise an RNMI through a double trap) and `xjitdomain` (`QEMU_CPU=`). The RNMI vectors are fixed at
+`LOAD_ADDR + 4` and `+ 8` by `env/crt.S`, which also sets `mnstatus.NMIE` and clears `mstatus.MDT` at boot.
+Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp and Smrnmi; `t-lpad` detects Zicfilp at run time
+and skips its ELP checks without it, as on CVA6, and `t-rnmi` skips itself without Smrnmi. Spike never takes an RNMI, so
+`t-rnmi` checks only `mnret` there. Each test prints `<name>: N checks, M failures` and exits with a non-zero code on
 failure.
 
 ## Layout
@@ -93,7 +96,8 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
 | T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
 | T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
-| T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry, an interrupt at a pad, traps into S mode, domain faults delegated to S mode |
+| T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry and clearing `xPPEND`, an interrupt at a pad, traps into S mode, domain faults delegated to S mode |
+| T-RNMI | `t-rnmi` | done: `mndstatus` mask, `mnret` restoring the domain and clearing `MNPPEND`; RNMI entry with an entry pending and an RNMI exception saving into `mdstatus` (with Smdbltrp, so QEMU only); skipped without Smrnmi |
 | T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | | RTL only |

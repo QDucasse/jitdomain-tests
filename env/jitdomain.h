@@ -18,6 +18,7 @@
 #define CSR_DMPCFG0  0x7c3
 #define CSR_DMPCFG1  0x7c4
 #define CSR_MDSTATUS 0x7c5
+#define CSR_MNDSTATUS 0x7c6
 
 // dstatus / mdstatus; xPPEND packs {valid, label[8:0], dom[2:0]}
 #define DSTATUS_EN         0x1

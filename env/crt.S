@@ -6,9 +6,24 @@
 #define REGBYTES 8
 #define FRAME (32 * REGBYTES)
 
+#define CSR_MNSTATUS 0x744
+#define MNSTATUS_NMIE 0x8
+#define MSTATUS_MDT_BIT 42
+
   .section .text.init, "ax"
-  .globl _start
+  .globl _start, rnmi_vector, rnmi_exc_vector
+  .option push
+  .option norvc
 _start:
+  j 1f
+// RNMI and RNMI exception vectors at fixed addresses (LOAD_ADDR + 4 and + 8),
+// for models that take the vectors as configuration
+rnmi_vector:
+  j rnmi_handler
+rnmi_exc_vector:
+  j rnmi_exc_handler
+  .option pop
+1:
   la sp, stack_top
   la t0, trap_stack_top
   csrw mscratch, t0
@@ -23,6 +38,14 @@ _start:
   addi t0, t0, 8
   j 1b
 2:
+  // Smdbltrp resets MDT to 1, which would turn the monitor's own expected
+  // traps into double traps. With Smrnmi, NMIE resets to 0, which would send
+  // every M-mode trap to the RNMI exception vector. Without these extensions
+  // the bits are read-only zero, or the CSR traps once and is skipped.
+  li t0, 1
+  slli t0, t0, MSTATUS_MDT_BIT
+  csrc mstatus, t0
+  csrsi CSR_MNSTATUS, MNSTATUS_NMIE
   call main
   call exit
 
@@ -98,6 +121,10 @@ trap_entry:
 return_to_monitor:
   addi sp, sp, FRAME
   csrw mscratch, sp
+  // The trap set MDT and no mret clears it on this path
+  li t0, 1
+  slli t0, t0, MSTATUS_MDT_BIT
+  csrc mstatus, t0
   la t0, monitor_ctx
   ld ra, 0*REGBYTES(t0)
   ld sp, 1*REGBYTES(t0)
@@ -120,3 +147,13 @@ return_to_monitor:
   .align 3
 monitor_ctx:
   .skip 14 * REGBYTES
+
+// Default RNMI handlers: no test expects an RNMI unless it defines its own
+  .text
+  .weak rnmi_handler, rnmi_exc_handler
+rnmi_handler:
+rnmi_exc_handler:
+  la sp, stack_top
+  li a0, 0x7e
+  call exit
+
