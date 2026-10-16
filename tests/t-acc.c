@@ -90,14 +90,33 @@ static void one(int e, int k, int r, int acc)
   }
 }
 
+// QUICK=1 (Verilator) samples three rights values per cell: none, exactly
+// the needed right, and everything but the needed right
+#if QUICK
+#define NRIGHTS 3
+static int rights_sample(int acc, int i)
+{
+  int need = accs[acc].need;
+  return i == 0 ? 0 : i == 1 ? need : 7 & ~need;
+}
+#else
+#define NRIGHTS 8
+static int rights_sample(int acc, int i)
+{
+  (void)acc;
+  return i;
+}
+#endif
+
 static void check_matrix(void)
 {
   dom_reset();
   place_stubs();
   for (int e = 0; e < NDOMS; e++)
     for (int k = 0; k < NKEYS; k++)
-      for (int r = 0; r < 8; r++)
-        for (int acc = 0; acc < NACC; acc++) {
+      for (int acc = 0; acc < NACC; acc++)
+        for (int i = 0; i < NRIGHTS; i++) {
+          int r = rights_sample(acc, i);
           int before = failures;
           one(e, k, r, acc);
           if (failures != before && failures <= 50)

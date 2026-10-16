@@ -10,14 +10,16 @@ Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU an
 make run                      # build everything and run it on Spike
 make run-t-acc                # one test
 make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_xjitdomain
+make all QUICK=1              # sampled T-ACC, for Verilator
 ```
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `KEYSRC` | `pmp` | where keys come from: `pmp` (Track A); `sv39` (Track B) is not written yet |
 | `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
+| `QUICK` | `0` | `1`: T-ACC tries three rights values per cell (none, exactly the needed right, all but it) instead of eight |
 
-ELFs go to `build/<platform>-<keysrc>/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
+ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
 console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
 
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by

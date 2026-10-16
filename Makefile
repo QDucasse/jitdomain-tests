@@ -3,8 +3,10 @@ CC := $(CROSS)gcc
 
 # KEYSRC: where keys come from, pmp (Track A) or sv39 (Track B, not written yet)
 # PLATFORM: link address and console, env/platform/<name>/platform.mk
+# QUICK=1: sampled T-ACC rights, for Verilator
 KEYSRC ?= pmp
 PLATFORM ?= htif
+QUICK ?= 0
 
 include env/platform/$(PLATFORM)/platform.mk
 
@@ -15,6 +17,7 @@ endif
 ARCH := -march=rv64imac_zicsr_zifencei -mabi=lp64
 CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -ffreestanding -fno-builtin -nostdlib -nostartfiles -Ienv \
+          -DQUICK=$(QUICK) \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
@@ -22,7 +25,7 @@ ISA ?= rv64imac_zicsr_zifencei_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 TESTS := t-csr t-typed t-acc
-BUILD := build/$(PLATFORM)-$(KEYSRC)
+BUILD := build/$(PLATFORM)-$(KEYSRC)$(if $(filter 1,$(QUICK)),-quick)
 
 ENV_SRCS := env/crt.S env/harness.c env/stubs.S env/keysrc-$(KEYSRC).c $(PLATFORM_SRCS)
 ENV_DEPS := $(ENV_SRCS) $(wildcard env/*.h) env/link.ld env/platform/$(PLATFORM)/platform.mk

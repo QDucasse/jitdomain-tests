@@ -3,3 +3,4 @@
 -std=gnu11
 -ffreestanding
 -Ienv
+-DQUICK=0
