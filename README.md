@@ -85,7 +85,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-CSR | `t-csr` | done |
 | T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
 | T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
-| T-DRS | | todo |
+| T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
 | T-TRAP | | todo |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | | RTL only |
