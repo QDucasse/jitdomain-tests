@@ -1,5 +1,6 @@
 // T-FLUSH: the instruction right after a domain change is checked against the
-// new domain. The change is a domlpad, a domret, an mret or sret, or a trap
+// new domain, and an access never reuses the rights an earlier access to the
+// same page was granted under another domain or as another kind. The change is a domlpad, a domret, an mret or sret, or a trap
 // into S mode; the next instruction is an ordinary load or store, a typed
 // load, or the fetch of the next page. Each case runs twice, with the rights
 // arranged so that only the new domain may access, then only the old one, so a
@@ -16,6 +17,8 @@ STUB(call_1_5); STUB(call_ld); STUB(call_sd); STUB(call_dld);
 STUB(pad_ld); STUB(pad_sd); STUB(pad_dld); STUB(pad_ret);
 STUB(pad_only); STUB(call_only); STUB(land);
 STUB(s_ld); STUB(s_sret); STUB(stub_ld); STUB(stub_ecall);
+STUB(ld_call); STUB(sd_call); STUB(pad_ld_ret); STUB(ld_lr); STUB(ld_amo);
+STUB(sd_amo); STUB(ld_dld); STUB(dld_ld); STUB(ld_cbo);
 
 #define GATE(from, to) (1ULL << (8 * (from) + (to)))
 #define CODE1 (PAGE(1) + 0x100)
@@ -28,6 +31,9 @@ STUB(s_ld); STUB(s_sret); STUB(stub_ld); STUB(stub_ecall);
 #define DATA6 0x6666666666666666ULL
 
 #define MSTATUS_SUM (1ULL << 18)
+#define CSR_MENVCFG 0x30a
+#define CSR_SENVCFG 0x10a
+#define ENVCFG_CBO ((1 << 4) | (1 << 6) | (1 << 7))   // CBIE = flush, CBCFE, CBZE
 #define DSTATUS_BASE (DSTATUS_EN | (7 << DSTATUS_DRSKEY_SHIFT))
 
 static uint64_t reg(int i)
@@ -243,6 +249,73 @@ static void check_trap_entry(void)
   csr_write(medeleg, 0);
 }
 
+// The first access of each stub succeeds, and the second one, to the same
+// page, faults: a model that caches the rights of the first one, in a TLB
+// for instance, lets it through
+static void check_cached(void)
+{
+  // Before a domcall, after a domret
+  setup();
+  place_stub(CODE1, pad_ld, pad_ld_end);
+  check_fault(run_u(ld_call, 0, CODE1, PAGE(4)), CODE1 + 4, PAGE(4), 1);
+  place_stub(CODE1, pad_sd, pad_sd_end);
+  check_fault(run_u(sd_call, 0, CODE1, PAGE(4)), CODE1 + 4, PAGE(4), 1);
+  CHECK_EQ(*word(4, 0), DATA4);
+  csr_write(CSR_DSP, TOP);   // the faulting callees left their entries
+  place_stub(CODE1, pad_ld_ret, pad_ld_ret_end);
+  check_fault(run_u(call_ld, 0, CODE1, PAGE(3)), (uintptr_t)call_ld + 4, PAGE(3), 0);
+  CHECK_EQ(csr_read(CSR_DSP), TOP);
+
+  // The fetch of the target of a domcall in the same page: DOM0 may execute
+  // page 1, DOM1 may not
+  setup();
+  place_stub(CODE1, call_only, call_only_end);
+  place_stub(CODE1 + 0x40, pad_only, pad_only_end);
+  place_stub(CODE1 + 0x44, land, land_end);
+  rights_set(0, 1, DR_X);
+  rights_set(1, 1, DR_X);
+  rights_apply();
+  CHECK_OK(run_u((void *)CODE1, 0, CODE1 + 0x40, 0), PRV_U);
+  CHECK_EQ(reg(18), 1);
+  csr_write(CSR_DSP, TOP);
+  rights_set(1, 1, 0);
+  rights_apply();
+  uint64_t cause = run_u((void *)CODE1, 0, CODE1 + 0x40, 0);
+  CHECK_DOM_FAULT(cause, CODE1 + 0x40);
+  CHECK_EQ(last_trap.epc, CODE1 + 0x40);
+  csr_write(CSR_DSP, TOP);
+
+  // LR and AMOs need R and W, after a load allowed with R only and a store
+  // allowed with W only
+  setup();
+  rights_set(0, 4, DR_R);
+  rights_apply();
+  check_fault(run_u(ld_lr, 0, 0, PAGE(4)), (uintptr_t)ld_lr + 4, PAGE(4), 0);
+  check_fault(run_u(ld_amo, 0, 0, PAGE(4)), (uintptr_t)ld_amo + 4, PAGE(4), 0);
+  rights_set(0, 4, DR_W);
+  rights_apply();
+  check_fault(run_u(sd_amo, 0, 0, PAGE(4)), (uintptr_t)sd_amo + 4, PAGE(4), 0);
+  CHECK_EQ(*word(4, 0), DATA4);
+
+  // Typed accesses from DOM1 go to DOM6, which may read page 6 only, and
+  // DOM1 may access page 3 only
+  setup();
+  check_fault(run_u(ld_dld, 1, 0, PAGE(3)), (uintptr_t)ld_dld + 4, PAGE(3), 1);
+  check_fault(run_u(dld_ld, 1, 0, PAGE(6)), (uintptr_t)dld_ld + 4, PAGE(6), 1);
+
+  // cbo.clean needs W, after a load allowed with R only
+  csr_set(CSR_MENVCFG, ENVCFG_CBO);
+  csr_set(CSR_SENVCFG, ENVCFG_CBO);
+  setup();
+  rights_set(0, 4, DR_R);
+  rights_apply();
+  cause = run_u(ld_cbo, 0, 0, PAGE(4));
+  if (cause == CAUSE_ILLEGAL_INSN)
+    printf("  cbo.clean: Zicbom not implemented, skipped\n");
+  else
+    check_fault(cause, (uintptr_t)ld_cbo + 4, PAGE(4), 0);
+}
+
 int main(void)
 {
   check_domlpad();
@@ -251,5 +324,6 @@ int main(void)
   check_mret();
   check_sret();
   check_trap_entry();
+  check_cached();
   return report("t-flush");
 }

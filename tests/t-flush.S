@@ -42,6 +42,18 @@ SNIP(call_only, domcall ra, a0, 1, 5)
 // Placed at the start of a page: record curdom in s2, then end
 SNIP(land, csrr s2, CSR_CURDOM; ecall)
 
+// An access to a1, then a domain change or an access of another kind to the
+// same page. Rights cached by the first access must not serve the second.
+STUB(ld_call, ld a2, 0(a1); domcall ra, a0, 1, 5)
+STUB(sd_call, sd a1, 8(a1); domcall ra, a0, 1, 5)
+SNIP(pad_ld_ret, domlpad 1, 5; ld a2, 0(a1); domret)
+STUB(ld_lr,   ld a2, 0(a1); lr.d a3, (a1))
+STUB(ld_amo,  ld a2, 0(a1); amoadd.d a3, x0, (a1))
+STUB(sd_amo,  sd a1, 8(a1); amoadd.d a3, x0, (a1))
+STUB(ld_dld,  ld a2, 0(a1); dld a3, 0(a1))
+STUB(dld_ld,  dld a2, 0(a1); ld a3, 0(a1))
+STUB(ld_cbo,  ld a2, 0(a1); .insn i 0x0f, 2, x0, 1(a1))   // cbo.clean
+
 // S-mode trap handler (stvec): a load from a1 as its first instruction
 STUB(s_ld, ld a2, 0(a1); csrr s5, CSR_CURDOM)
 
