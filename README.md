@@ -92,6 +92,6 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | | RTL only |
-| T-DEPUTY | | todo |
+| T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
 
 Not covered yet: `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.
