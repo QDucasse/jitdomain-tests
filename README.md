@@ -28,9 +28,10 @@ console and the exit code, so the same file runs on Spike, QEMU (`spike` machine
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
 default `../riscv-isa-sim/install/bin/spike`). `SIM=qemu` needs a QEMU built from the `jitdomain` branch of the QEMU
 fork (by default `../qemu/build-jitdomain/qemu-system-riscv64`, set with `QEMU=`), run on the `spike` machine with
-`num-pmp-regions=8`, Zicfilp and `xjitdomain` (`QEMU_CPU=`). Spike runs with `--pmpregions=8`, CVA6's PMP count, and
-with Zicfilp; `t-lpad` detects Zicfilp at run time and skips its ELP checks without it, as on CVA6. Each test prints
-`<name>: N checks, M failures` and exits with a non-zero code on failure.
+`num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6) and `xjitdomain` (`QEMU_CPU=`).
+Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp; `t-lpad` detects Zicfilp at run time and skips its
+ELP checks without it, as on CVA6. Each test prints `<name>: N checks, M failures` and exits with a non-zero code on
+failure.
 
 ## Layout
 

@@ -25,7 +25,8 @@ ISA ?= rv64imac_zicsr_zifencei_zicfilp_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 QEMU ?= $(abspath ../qemu/build-jitdomain/qemu-system-riscv64)
-QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,xjitdomain=true
+# Svade, as on Spike and CVA6: a clear A or D bit raises a page fault
+QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,svade=true,svadu=false,xjitdomain=true
 QEMU_FLAGS := -M spike -nographic -bios none -cpu $(QEMU_CPU) -kernel
 
 # SIM: simulator for run and run-<test>, spike or qemu
