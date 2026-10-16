@@ -20,6 +20,9 @@ extern char drs_top[];
 
 static uint64_t dmpcfg;
 
+// No translation: stubs run with satp = Bare
+uint64_t keysrc_satp[2];
+
 void keysrc_reset(void)
 {
   csr_write(pmpaddr0, PAGE(1) >> 2);
@@ -39,6 +42,11 @@ void keysrc_reset(void)
   dmpcfg = 0;
   for (int k = 0; k < NKEYS; k++)
     key_set(k, k);
+}
+
+// PMP keys stay in place: with EN = 0 they are ignored
+void keysrc_disable(void)
+{
 }
 
 // Page p is PMP entry p. Entry 0 also holds the code and data, and entry 7 the

@@ -167,6 +167,12 @@ void dom_reset(void)
   csr_write(CSR_DSTATUS, DSTATUS_EN | (7 << DSTATUS_DRSKEY_SHIFT));
 }
 
+void dom_disable(void)
+{
+  keysrc_disable();
+  csr_clear(CSR_DSTATUS, DSTATUS_EN);
+}
+
 void *place_stub(uintptr_t dst, const char *start, const char *end)
 {
   memcpy((void *)dst, start, end - start);

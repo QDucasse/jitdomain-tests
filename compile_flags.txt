@@ -4,3 +4,4 @@
 -ffreestanding
 -Ienv
 -DQUICK=0
+-DKEYSRC_PMP=1

@@ -63,11 +63,14 @@ extern char pages[];
 // Memory tagging, one implementation per key source (keysrc-*.c, KEYSRC= in the
 // Makefile)
 void keysrc_reset(void);
+void keysrc_disable(void);   // what dstatus.EN = 0 requires of the tags
 void key_set(int page, int key);
+extern uint64_t keysrc_satp[2];   // satp for U and S stubs, read by run_lower()
 
 // Domain configuration; the rights matrix is kept in a shadow copy and written
 // with rights_apply()
 void dom_reset(void);   // tags, dstatus = EN | DRSKEY=7, everything else at reset
+void dom_disable(void); // dstatus.EN = 0, other fields kept
 void rights_clear(void);
 void rights_set(int e, int k, int r);
 int rights_get(int e, int k);

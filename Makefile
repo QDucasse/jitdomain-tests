@@ -1,7 +1,7 @@
 CROSS ?= riscv64-unknown-elf-
 CC := $(CROSS)gcc
 
-# KEYSRC: where keys come from, pmp (PMP entries) or sv39 (Sv39 PTEs, not written yet)
+# KEYSRC: where keys come from, pmp (PMP entries) or sv39 (Sv39 PTEs)
 # PLATFORM: link address and console, env/platform/<name>/platform.mk
 # QUICK=1: sampled T-ACC rights, for Verilator
 KEYSRC ?= pmp
@@ -17,7 +17,7 @@ endif
 ARCH := -march=rv64imac_zicsr_zifencei -mabi=lp64
 CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -ffreestanding -fno-builtin -nostdlib -nostartfiles -Ienv \
-          -DQUICK=$(QUICK) \
+          -DQUICK=$(QUICK) -DKEYSRC_$(shell echo $(KEYSRC) | tr a-z A-Z)=1 \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)

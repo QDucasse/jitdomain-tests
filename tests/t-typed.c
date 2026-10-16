@@ -215,7 +215,7 @@ static void check_supervisor(void)
 static void check_disabled(void)
 {
   setup();
-  csr_write(CSR_DSTATUS, 0);
+  dom_disable();
   CHECK_OK(run_u(stub_dld, 1, PAGE(2), 0), PRV_U);
   CHECK_OK(run_u(stub_dld, 4, PAGE(5), 0), PRV_U);
   CHECK_OK(run_u(stub_dsd, 4, PAGE(5), 0), PRV_U);

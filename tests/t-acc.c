@@ -164,7 +164,7 @@ static void check_disabled(void)
 {
   dom_reset();
   place_stubs();
-  csr_write(CSR_DSTATUS, 7 << DSTATUS_DRSKEY_SHIFT);
+  dom_disable();
   for (int k = 0; k < NKEYS; k++) {
     CHECK_OK(run_u((void *)stub_at(k, ACC_LOAD), 3, PAGE(k), 0), PRV_U);
     CHECK_OK(run_u((void *)stub_at(k, ACC_STORE), 3, PAGE(k), STORED), PRV_U);
@@ -190,8 +190,10 @@ static void check_supervisor(void)
   CHECK_DOM_FAULT(run_s((void *)stub_at(2, ACC_STORE), 1, PAGE(3), STORED), PAGE(3));
 }
 
+#if KEYSRC_PMP
 // M mode is checked only for accesses that match a locked PMP entry. Locks
-// entry 3 until reset, so this runs last.
+// entry 3 until reset, so this runs last. M mode does not translate, so its
+// keys always come from PMP: KEYSRC=pmp only.
 static void check_machine(void)
 {
   dom_reset();
@@ -228,6 +230,7 @@ static void check_machine(void)
   CHECK_EQ(last_trap.cause, CAUSE_DOMAIN_ACCESS);
   CHECK_EQ(*data(3), DATA);
 }
+#endif
 
 int main(void)
 {
@@ -236,6 +239,8 @@ int main(void)
   check_lr_sc();
   check_disabled();
   check_supervisor();
+#if KEYSRC_PMP
   check_machine();
+#endif
   return report("t-acc");
 }

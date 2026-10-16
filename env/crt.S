@@ -53,6 +53,13 @@ run_lower:
   sd s11, 13*REGBYTES(t0)
 
   csrw mepc, a0
+  // satp = keysrc_satp[mpp]
+  la t0, keysrc_satp
+  slli t1, a1, 3
+  add t0, t0, t1
+  ld t0, 0(t0)
+  csrw satp, t0
+  sfence.vma
   li t0, 3 << 11
   csrc mstatus, t0
   slli a1, a1, 11
@@ -66,8 +73,7 @@ run_lower:
   mret
 
 // Every trap lands here. Traps from M mode are resumed past the faulting
-// instruction (the suite is built without C); traps from S/U mode end the
-// stub and return from run_lower.
+// instruction; traps from S/U mode end the stub and return from run_lower.
   .align 2
 trap_entry:
   csrrw sp, mscratch, sp
