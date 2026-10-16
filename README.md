@@ -36,9 +36,10 @@ default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`,
 | `env/harness.c` | trap handler, `printf`, `CHECK_*`, domain configuration helpers |
 | `env/keysrc-pmp.c` | `keysrc_reset()` and `key_set(page, key)` through PMP and `dmpcfg` |
 | `env/keysrc-sv39.c` | the same through the PTE key bits of an identity map |
+| `env/sv39.h` | PTE bits, `pte()`, `pte_key()` and `sv39_root()`, shared with `t-pte` |
 | `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
 | `env/stubs.S` | the S/U-mode stubs the tests run |
-| `tests/t-*.c` | one ELF per test ID |
+| `tests/t-*.c` | one ELF per test ID; `t-pte` is built only with `KEYSRC=sv39` |
 
 The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
 platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
@@ -81,6 +82,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-TYPED | `t-typed` | done; also covers T-ORD |
 | T-ORD | `t-typed` | done |
 | T-CSR | `t-csr` | done |
+| T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
 | T-LPAD | | todo |
 | T-DRS | | todo |
 | T-TRAP | | todo |
@@ -88,4 +90,4 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-SPEC | | RTL only |
 | T-DEPUTY | | todo |
 
-Not covered yet: T-PTE (`KEYSRC=sv39` only), `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.
+Not covered yet: `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.

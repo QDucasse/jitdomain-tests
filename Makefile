@@ -25,6 +25,9 @@ ISA ?= rv64imac_zicsr_zifencei_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 TESTS := t-csr t-typed t-acc
+# Tests that only apply to one key source
+TESTS_sv39 := t-pte
+TESTS += $(TESTS_$(KEYSRC))
 BUILD := build/$(PLATFORM)-$(KEYSRC)$(if $(filter 1,$(QUICK)),-quick)
 
 ENV_SRCS := env/crt.S env/harness.c env/stubs.S env/keysrc-$(KEYSRC).c $(PLATFORM_SRCS)

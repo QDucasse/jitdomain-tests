@@ -10,19 +10,7 @@
 // ignored under translation.
 
 #include "env.h"
-
-#define PTE_V 0x01
-#define PTE_R 0x02
-#define PTE_W 0x04
-#define PTE_X 0x08
-#define PTE_U 0x10
-#define PTE_A 0x40
-#define PTE_D 0x80
-#define PTE_KEY_SHIFT 54
-#define PTE_KEY (7ULL << PTE_KEY_SHIFT)
-#define PTE_PPN_SHIFT 10
-
-#define SATP_SV39 (8ULL << 60)
+#include "sv39.h"
 
 #define PMP_RWX_TOR 0x0f
 
@@ -31,11 +19,6 @@ extern char LOAD_ADDR[], drs_base[], drs_top[];
 // [U, S][root, level 1, level 0]
 static uint64_t tables[2][3][512] __attribute__((aligned(PAGE_SIZE)));
 uint64_t keysrc_satp[2];
-
-static uint64_t pte(uintptr_t pa, uint64_t flags)
-{
-  return (pa >> 12) << PTE_PPN_SHIFT | flags;
-}
 
 static uint64_t *leaf(int t, uintptr_t va)
 {
@@ -46,8 +29,13 @@ static void leaf_key(uintptr_t va, int key)
 {
   for (int t = 0; t < 2; t++) {
     uint64_t *p = leaf(t, va);
-    *p = (*p & ~PTE_KEY) | (uint64_t)key << PTE_KEY_SHIFT;
+    *p = pte_key(*p, key);
   }
+}
+
+uint64_t *sv39_root(int t)
+{
+  return tables[t][0];
 }
 
 void keysrc_reset(void)
