@@ -12,9 +12,16 @@ make run-t-acc                # one test
 make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_xjitdomain
 ```
 
+| Variable | Default | Meaning |
+|---|---|---|
+| `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
+
+ELFs go to `build/<platform>/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
+console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
+
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
-default `../riscv-isa-sim/install/bin/spike`). Each test prints `<name>: N checks, M failures` and exits through HTIF
-`tohost` with a non-zero code on failure.
+default `../riscv-isa-sim/install/bin/spike`). Each test prints
+`<name>: N checks, M failures` and exits with a non-zero code on failure.
 
 ## Layout
 
@@ -22,11 +29,14 @@ default `../riscv-isa-sim/install/bin/spike`). Each test prints `<name>: N check
 |---|---|
 | `env/jitdomain.h` | CSR numbers, field layouts, causes; in assembly, `.insn` macros for `dl*`/`ds*`/`domcall`/`domret`/`domlpad` |
 | `env/crt.S` | entry, trap vector, `run_lower()` |
-| `env/harness.c` | trap handler, HTIF console, `CHECK_*`, domain configuration helpers |
+| `env/harness.c` | trap handler, `printf`, `CHECK_*`, domain configuration helpers |
+| `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
 | `env/stubs.S` | the S/U-mode stubs the tests run |
 | `tests/t-*.c` | one ELF per test ID |
 
-The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`).
+The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
+platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
+`exit()`; the tests do not change.
 
 ## How a test runs
 

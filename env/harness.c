@@ -1,34 +1,9 @@
 #include <stdarg.h>
 #include "env.h"
 
-volatile uint64_t tohost __attribute__((section(".tohost"), aligned(64)));
-volatile uint64_t fromhost __attribute__((section(".tohost"), aligned(64)));
-
 volatile trap_t last_trap;
 volatile uint64_t m_traps;
 int checks, failures;
-
-// HTIF: device 1 (console), command 1 (putchar); exit is (code << 1) | 1.
-// Spike's console does not acknowledge a putchar through fromhost.
-static void htif(uint64_t cmd)
-{
-  while (tohost)
-    ;
-  tohost = cmd;
-}
-
-void exit(int code)
-{
-  while (tohost)
-    ;
-  for (;;)
-    tohost = ((uint64_t)code << 1) | 1;
-}
-
-static void putc_(char c)
-{
-  htif((1ULL << 56) | (1ULL << 48) | (unsigned char)c);
-}
 
 static void put_u(uint64_t v, unsigned base)
 {
@@ -39,7 +14,7 @@ static void put_u(uint64_t v, unsigned base)
     v /= base;
   } while (v);
   while (n)
-    putc_(buf[--n]);
+    platform_putchar(buf[--n]);
 }
 
 // %s %c %d %u %x, an optional 'l' is accepted and ignored (everything is 64-bit)
@@ -49,7 +24,7 @@ int printf(const char *fmt, ...)
   va_start(ap, fmt);
   for (; *fmt; fmt++) {
     if (*fmt != '%') {
-      putc_(*fmt);
+      platform_putchar(*fmt);
       continue;
     }
     if (*++fmt == 'l')
@@ -57,15 +32,15 @@ int printf(const char *fmt, ...)
     switch (*fmt) {
     case 's':
       for (const char *s = va_arg(ap, const char *); *s; s++)
-        putc_(*s);
+        platform_putchar(*s);
       break;
     case 'c':
-      putc_(va_arg(ap, int));
+      platform_putchar(va_arg(ap, int));
       break;
     case 'd': {
       int64_t v = va_arg(ap, int64_t);
       if (v < 0) {
-        putc_('-');
+        platform_putchar('-');
         v = -v;
       }
       put_u(v, 10);
@@ -78,7 +53,7 @@ int printf(const char *fmt, ...)
       put_u(va_arg(ap, uint64_t), 16);
       break;
     default:
-      putc_(*fmt);
+      platform_putchar(*fmt);
     }
   }
   va_end(ap);

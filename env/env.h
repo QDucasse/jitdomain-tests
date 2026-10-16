@@ -67,9 +67,12 @@ uint64_t dtarget_identity(void);
 // Copy a stub into memory that a test can tag with any key
 void *place_stub(uintptr_t dst, const char *start, const char *end);
 
+// Platform layer (platform/<name>/, PLATFORM= in the Makefile)
+void platform_putchar(char c);
+void exit(int code) __attribute__((noreturn));
+
 // Reporting
 int printf(const char *fmt, ...);
-void exit(int code) __attribute__((noreturn));
 void *memcpy(void *dst, const void *src, size_t n);
 void *memset(void *dst, int c, size_t n);
 
