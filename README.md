@@ -9,7 +9,7 @@ Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU an
 ```
 make run                      # build everything and run it on Spike
 make run-t-acc                # one test
-make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_xjitdomain
+make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_xjitdomain
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
 ```
@@ -24,7 +24,8 @@ ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x8000
 console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
 
 Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
-default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`, CVA6's PMP count. Each test prints
+default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp;
+`t-lpad` detects Zicfilp at run time and skips its ELP checks without it, as on CVA6. Each test prints
 `<name>: N checks, M failures` and exits with a non-zero code on failure.
 
 ## Layout
@@ -39,7 +40,7 @@ default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`,
 | `env/sv39.h` | PTE bits, `pte()`, `pte_key()` and `sv39_root()`, shared with `t-pte` |
 | `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
 | `env/stubs.S` | the S/U-mode stubs the tests run |
-| `tests/t-*.c` | one ELF per test ID; `t-pte` is built only with `KEYSRC=sv39` |
+| `tests/t-*.c`, `tests/t-*.S` | one ELF per test ID, with its own stubs if it needs any; `t-pte` is built only with `KEYSRC=sv39` |
 
 The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
 platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
@@ -47,11 +48,11 @@ platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_A
 
 ## How a test runs
 
-Each test is an M-mode monitor. It configures the domain state, then runs a stub in S or U mode with
-`run_lower(entry, priv, mdstatus, a0, a1)`, which enters the stub through `mret`. That way the domain (`MPD`) and a
-pending entry (`MPPEND`) come from the trap-return path. The stub does one thing and then executes `ecall`;
-the first trap ends it, and `run_lower` returns `mcause`, with the rest of the trap in `last_trap`. A trap taken in
-M mode skips the faulting instruction by its length, 2 or 4 bytes. The suite is built with C.
+Each test is an M-mode monitor. It configures the domain state, then runs a stub in S or U mode with `run_lower(entry,
+priv, mdstatus, a0, a1)`, which enters the stub through `mret`. That way the domain (`MPD`) and a pending entry
+(`MPPEND`) come from the trap-return path. The stub does one thing and then executes `ecall`; the first trap ends it,
+and `run_lower` returns `mcause`, with the rest of the trap, all registers included, in `last_trap`. A trap taken in M
+mode skips the faulting instruction by its length, 2 or 4 bytes. The suite is built with C.
 
 Tests tag memory only through `dom_reset()`, `dom_disable()` and `key_set()`, so they run unchanged with either key
 source. With `KEYSRC=pmp`, `dom_reset()` builds a TOR chain over the 8 PMP entries:
@@ -83,7 +84,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-ORD | `t-typed` | done |
 | T-CSR | `t-csr` | done |
 | T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
-| T-LPAD | | todo |
+| T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
 | T-DRS | | todo |
 | T-TRAP | | todo |
 | T-SIG | | Linux user mode, todo |

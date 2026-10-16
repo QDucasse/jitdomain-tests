@@ -98,6 +98,8 @@ uint64_t handle_trap(uint64_t *regs)
   last_trap.dcause = csr_read(CSR_DCAUSE);
   last_trap.mdstatus = csr_read(CSR_MDSTATUS);
   last_trap.a0 = regs[10];
+  for (int i = 1; i < 32; i++)
+    last_trap.x[i] = regs[i];
 
   if (((csr_read(mstatus) >> 11) & 3) != PRV_M)
     return 1;

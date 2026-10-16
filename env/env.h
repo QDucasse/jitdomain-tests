@@ -36,7 +36,8 @@
 // The trap that ended the last stub, or the last trap taken in M mode
 typedef struct {
   uint64_t cause, epc, tval, dcause, mdstatus;
-  uint64_t a0;    // the stub's a0 at the trap
+  uint64_t a0;      // the stub's a0 at the trap
+  uint64_t x[32];   // all of its registers (x[0] reads as zero)
 } trap_t;
 
 extern volatile trap_t last_trap;
@@ -60,7 +61,7 @@ static inline uint64_t run_s(void *stub, int dom, uint64_t a0, uint64_t a1)
 
 // Eight test pages, followed by the two DRS pages. dom_reset() tags page k with
 // key k (and the DRS with key 7).
-extern char pages[];
+extern char pages[], drs_base[], drs_top[];
 #define PAGE(k) ((uintptr_t)pages + (uintptr_t)(k) * PAGE_SIZE)
 
 // Memory tagging, one implementation per key source (keysrc-*.c, KEYSRC= in the

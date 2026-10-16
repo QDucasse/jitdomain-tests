@@ -14,7 +14,7 @@
 
 #define PMP_RWX_TOR 0x0f
 
-extern char LOAD_ADDR[], drs_base[], drs_top[];
+extern char LOAD_ADDR[];
 
 // [U, S][root, level 1, level 0]
 static uint64_t tables[2][3][512] __attribute__((aligned(PAGE_SIZE)));

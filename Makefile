@@ -21,10 +21,10 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
-ISA ?= rv64imac_zicsr_zifencei_xjitdomain
+ISA ?= rv64imac_zicsr_zifencei_zicfilp_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
-TESTS := t-csr t-typed t-acc
+TESTS := t-csr t-typed t-acc t-lpad
 # Tests that only apply to one key source
 TESTS_sv39 := t-pte
 TESTS += $(TESTS_$(KEYSRC))

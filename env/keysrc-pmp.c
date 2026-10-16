@@ -16,8 +16,6 @@
 #define PMP_TOR 0x08
 #define PMP_RWX_TOR (PMP_R | PMP_W | PMP_X | PMP_TOR)
 
-extern char drs_top[];
-
 static uint64_t dmpcfg;
 
 // No translation: stubs run with satp = Bare
