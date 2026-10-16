@@ -73,9 +73,9 @@ static void check_masks(void)
   csr_write(CSR_DRIGHTS1, 0);
   csr_write(CSR_DRIGHTS2, 0);
 
-  // dmpcfg: 16 nibbles {L, k}
+  // dmpcfg: a nibble {L, k} per implemented PMP entry; the others read as zero
   csr_write(CSR_DMPCFG0, 0x7777777777777777ULL);
-  CHECK_EQ(csr_read(CSR_DMPCFG0), 0x7777777777777777ULL);
+  CHECK_EQ(csr_read(CSR_DMPCFG0), 0x7777777777777777ULL & ((1ULL << (4 * NPMP)) - 1));
   csr_write(CSR_DMPCFG0, 0);
 
   csr_write(CSR_DSP, 0x80001230);
@@ -152,17 +152,18 @@ static void check_curdom_value(void)
 }
 
 // dmpcfg L: a locked nibble ignores writes until reset; the others stay writable.
-// Uses entry 14, which no other check relies on. Must run last.
+// Locks the last entry's nibble, so this runs last.
 static void check_dmpcfg_lock(void)
 {
+  const int sh = 4 * (NPMP - 1);
   dom_reset();
-  uint64_t base = csr_read(CSR_DMPCFG0) & ~(0xfULL << 56);
-  csr_write(CSR_DMPCFG0, base | ((uint64_t)(DMPCFG_L | 5) << 56));
-  CHECK_EQ(csr_read(CSR_DMPCFG0), base | ((uint64_t)(DMPCFG_L | 5) << 56));
-  csr_write(CSR_DMPCFG0, (base ^ 0x1) | (2ULL << 56));
-  CHECK_EQ(csr_read(CSR_DMPCFG0), (base ^ 0x1) | ((uint64_t)(DMPCFG_L | 5) << 56));
+  uint64_t base = csr_read(CSR_DMPCFG0) & ~(0xfULL << sh);
+  csr_write(CSR_DMPCFG0, base | ((uint64_t)(DMPCFG_L | 5) << sh));
+  CHECK_EQ(csr_read(CSR_DMPCFG0), base | ((uint64_t)(DMPCFG_L | 5) << sh));
+  csr_write(CSR_DMPCFG0, (base ^ 0x1) | (2ULL << sh));
+  CHECK_EQ(csr_read(CSR_DMPCFG0), (base ^ 0x1) | ((uint64_t)(DMPCFG_L | 5) << sh));
   csr_write(CSR_DMPCFG0, 0);
-  CHECK_EQ(csr_read(CSR_DMPCFG0), (uint64_t)(DMPCFG_L | 5) << 56);
+  CHECK_EQ(csr_read(CSR_DMPCFG0), (uint64_t)(DMPCFG_L | 5) << sh);
 }
 
 int main(void)

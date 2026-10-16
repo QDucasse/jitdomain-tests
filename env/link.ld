@@ -18,13 +18,16 @@ SECTIONS
     __bss_end = .;
   }
 
-  /* Eight 4 KiB test pages; page k is tagged with key k (PMP entry k, Track A) */
+  /* Eight 4 KiB test pages, then the two DRS pages: Track A covers page 7 and
+     the DRS with one PMP entry (keysrc-pmp.c) */
   . = ALIGN(0x1000);
-  .pages (NOLOAD) : { pages = .; . += 8 * 0x1000; }
-
-  /* Two DRS pages, tagged through PMP entry 8 (an 8 KiB NAPOT region) */
-  . = ALIGN(0x2000);
-  .drs (NOLOAD) : { drs_base = .; . += 2 * 0x1000; drs_top = .; }
+  .pages (NOLOAD) : {
+    pages = .;
+    . += 8 * 0x1000;
+    drs_base = .;
+    . += 2 * 0x1000;
+    drs_top = .;
+  }
 
   .stack (NOLOAD) : {
     . = ALIGN(16);

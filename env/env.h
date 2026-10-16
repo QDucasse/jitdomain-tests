@@ -52,12 +52,22 @@ static inline uint64_t run_s(void *stub, int dom, uint64_t a0, uint64_t a1)
   return run_lower(stub, PRV_S, (uint64_t)dom << DSTATUS_XPD_SHIFT, a0, a1);
 }
 
-// Test pages: page k is tagged with key k through PMP entry k
+// CVA6 implements 8 PMP entries; every model runs with that many
+#define NPMP 8
+
+// Eight test pages, followed by the two DRS pages. dom_reset() tags page k with
+// key k (and the DRS with key 7).
 extern char pages[];
 #define PAGE(k) ((uintptr_t)pages + (uintptr_t)(k) * PAGE_SIZE)
 
-// Domain configuration, kept in a shadow copy and written with dom_apply()
-void dom_reset(void);   // PMP and keys, dstatus = EN | DRSKEY=7, everything else at reset
+// Memory tagging, one implementation per key source (keysrc-*.c, KEYSRC= in the
+// Makefile)
+void keysrc_reset(void);
+void key_set(int page, int key);
+
+// Domain configuration; the rights matrix is kept in a shadow copy and written
+// with rights_apply()
+void dom_reset(void);   // tags, dstatus = EN | DRSKEY=7, everything else at reset
 void rights_clear(void);
 void rights_set(int e, int k, int r);
 int rights_get(int e, int k);

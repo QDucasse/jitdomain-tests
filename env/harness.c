@@ -153,42 +153,11 @@ uint64_t dtarget_identity(void)
   return v;
 }
 
-#define PMP_R 0x01
-#define PMP_W 0x02
-#define PMP_X 0x04
-#define PMP_NAPOT 0x18
-#define PMP_RWX_NAPOT (PMP_R | PMP_W | PMP_X | PMP_NAPOT)
-
-extern char drs_base[];
-
-// PMP entries 0-7: page k, key k. Entry 8: the two DRS pages, key DRSKEY (7).
-// Entry 15: the whole address space, key 0. All RWX, so only the domain check
-// can deny an access.
+// Keys from the key source (keysrc-*.c); every other CSR at its reset value,
+// apart from dstatus = EN | DRSKEY=7
 void dom_reset(void)
 {
-  csr_write(pmpaddr0, (PAGE(0) >> 2) | 0x1ff);
-  csr_write(pmpaddr1, (PAGE(1) >> 2) | 0x1ff);
-  csr_write(pmpaddr2, (PAGE(2) >> 2) | 0x1ff);
-  csr_write(pmpaddr3, (PAGE(3) >> 2) | 0x1ff);
-  csr_write(pmpaddr4, (PAGE(4) >> 2) | 0x1ff);
-  csr_write(pmpaddr5, (PAGE(5) >> 2) | 0x1ff);
-  csr_write(pmpaddr6, (PAGE(6) >> 2) | 0x1ff);
-  csr_write(pmpaddr7, (PAGE(7) >> 2) | 0x1ff);
-  csr_write(pmpaddr8, ((uintptr_t)drs_base >> 2) | 0x3ff);
-  csr_write(pmpaddr15, -1);
-
-  uint64_t cfg = 0;
-  for (int i = 0; i < 8; i++)
-    cfg |= (uint64_t)PMP_RWX_NAPOT << (8 * i);
-  csr_write(pmpcfg0, cfg);
-  csr_write(pmpcfg2, PMP_RWX_NAPOT | ((uint64_t)PMP_RWX_NAPOT << 56));
-
-  uint64_t dmp = 0;
-  for (uint64_t k = 0; k < 8; k++)
-    dmp |= k << (4 * k);
-  dmp |= 7ULL << (4 * 8);
-  csr_write(CSR_DMPCFG0, dmp);
-
+  keysrc_reset();
   rights_clear();
   rights_apply();
   csr_write(CSR_DTARGET, dtarget_identity());

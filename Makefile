@@ -1,10 +1,16 @@
 CROSS ?= riscv64-unknown-elf-
 CC := $(CROSS)gcc
 
+# KEYSRC: where keys come from, pmp (Track A) or sv39 (Track B, not written yet)
 # PLATFORM: link address and console, env/platform/<name>/platform.mk
+KEYSRC ?= pmp
 PLATFORM ?= htif
 
 include env/platform/$(PLATFORM)/platform.mk
+
+ifeq ($(wildcard env/keysrc-$(KEYSRC).c),)
+$(error KEYSRC=$(KEYSRC) is not implemented)
+endif
 
 ARCH := -march=rv64imac_zicsr_zifencei -mabi=lp64
 CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
@@ -13,11 +19,12 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
 ISA ?= rv64imac_zicsr_zifencei_xjitdomain
+SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 TESTS := t-csr t-typed t-acc
-BUILD := build/$(PLATFORM)
+BUILD := build/$(PLATFORM)-$(KEYSRC)
 
-ENV_SRCS := env/crt.S env/harness.c env/stubs.S $(PLATFORM_SRCS)
+ENV_SRCS := env/crt.S env/harness.c env/stubs.S env/keysrc-$(KEYSRC).c $(PLATFORM_SRCS)
 ENV_DEPS := $(ENV_SRCS) $(wildcard env/*.h) env/link.ld env/platform/$(PLATFORM)/platform.mk
 
 all: $(TESTS:%=$(BUILD)/%.elf)
@@ -31,13 +38,13 @@ $(BUILD):
 run: all
 	@fail=0; \
 	for t in $(TESTS); do \
-	  if $(SPIKE) --isa=$(ISA) $(BUILD)/$$t.elf; then echo "PASS $$t"; \
+	  if $(SPIKE) $(SPIKE_FLAGS) $(BUILD)/$$t.elf; then echo "PASS $$t"; \
 	  else echo "FAIL $$t"; fail=1; fi; \
 	done; \
 	exit $$fail
 
 run-%: $(BUILD)/%.elf
-	$(SPIKE) --isa=$(ISA) $<
+	$(SPIKE) $(SPIKE_FLAGS) $<
 
 clean:
 	rm -rf build
