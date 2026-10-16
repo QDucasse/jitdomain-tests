@@ -193,11 +193,19 @@ static void check_machine(void)
   (void)*data(4);
   CHECK_EQ(m_traps, before + 1);
 
+  // The monitor skips a faulting compressed instruction by its 2 bytes
+  register uintptr_t p __asm__("a0") = PAGE(3);
+  uint64_t reached = 0;
+  __asm__ volatile("c.ld a1, 0(%1)\n\tli %0, 1" : "+r"(reached) : "r"(p) : "a1", "memory");
+  CHECK_EQ(m_traps, before + 2);
+  CHECK_EQ(last_trap.tval, PAGE(3));
+  CHECK_EQ(reached, 1);
+
   rights_set(0, 3, DR_R);
   rights_apply();
   CHECK_EQ(*data(3), DATA);
   *data(3) = 0;
-  CHECK_EQ(m_traps, before + 2);
+  CHECK_EQ(m_traps, before + 3);
   CHECK_EQ(last_trap.cause, CAUSE_DOMAIN_ACCESS);
   CHECK_EQ(*data(3), DATA);
 }

@@ -44,7 +44,7 @@ Each test is an M-mode monitor. It configures the domain state, then runs a stub
 `run_lower(entry, priv, mdstatus, a0, a1)`, which enters the stub through `mret`. That way the domain (`MPD`) and a
 pending entry (`MPPEND`) come from the trap-return path. The stub does one thing and then executes `ecall`;
 the first trap ends it, and `run_lower` returns `mcause`, with the rest of the trap in `last_trap`. A trap taken in
-M mode skips the faulting instruction, so the suite is built without the C extension.
+M mode skips the faulting instruction by its length, 2 or 4 bytes. The suite is built with C.
 
 Memory is tagged through PMP (Track A):
 

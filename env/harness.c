@@ -104,7 +104,8 @@ uint64_t handle_trap(uint64_t *regs)
 
   // A trap in the monitor itself, expected by the test: skip the instruction
   m_traps++;
-  csr_write(mepc, last_trap.epc + 4);
+  uint16_t insn = *(volatile uint16_t *)last_trap.epc;
+  csr_write(mepc, last_trap.epc + ((insn & 3) == 3 ? 4 : 2));
   return 0;
 }
 

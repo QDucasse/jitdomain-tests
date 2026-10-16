@@ -6,14 +6,13 @@ PLATFORM ?= htif
 
 include env/platform/$(PLATFORM)/platform.mk
 
-# No C extension: the harness skips a faulting M-mode instruction with mepc += 4
-ARCH := -march=rv64ima_zicsr_zifencei -mabi=lp64
+ARCH := -march=rv64imac_zicsr_zifencei -mabi=lp64
 CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -ffreestanding -fno-builtin -nostdlib -nostartfiles -Ienv \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
-ISA ?= rv64ima_zicsr_zifencei_xjitdomain
+ISA ?= rv64imac_zicsr_zifencei_xjitdomain
 
 TESTS := t-csr t-typed t-acc
 BUILD := build/$(PLATFORM)
