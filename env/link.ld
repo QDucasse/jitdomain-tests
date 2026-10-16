@@ -18,8 +18,8 @@ SECTIONS
     __bss_end = .;
   }
 
-  /* Eight 4 KiB test pages, then the two DRS pages: Track A covers page 7 and
-     the DRS with one PMP entry (keysrc-pmp.c) */
+  /* Eight 4 KiB test pages, then the two DRS pages: KEYSRC=pmp covers page 7
+     and the DRS with one PMP entry (keysrc-pmp.c) */
   . = ALIGN(0x1000);
   .pages (NOLOAD) : {
     pages = .;

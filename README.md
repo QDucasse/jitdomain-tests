@@ -15,7 +15,7 @@ make all QUICK=1              # sampled T-ACC, for Verilator
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `KEYSRC` | `pmp` | where keys come from: `pmp` (Track A); `sv39` (Track B) is not written yet |
+| `KEYSRC` | `pmp` | where keys come from: `pmp` (PMP entries, through `dmpcfg`); `sv39` (Sv39 PTEs) is not written yet |
 | `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
 | `QUICK` | `0` | `1`: T-ACC tries three rights values per cell (none, exactly the needed right, all but it) instead of eight |
 
@@ -33,7 +33,7 @@ default `../riscv-isa-sim/install/bin/spike`). Spike runs with `--pmpregions=8`,
 | `env/jitdomain.h` | CSR numbers, field layouts, causes; in assembly, `.insn` macros for `dl*`/`ds*`/`domcall`/`domret`/`domlpad` |
 | `env/crt.S` | entry, trap vector, `run_lower()` |
 | `env/harness.c` | trap handler, `printf`, `CHECK_*`, domain configuration helpers |
-| `env/keysrc-pmp.c` | Track A: `keysrc_reset()` and `key_set(page, key)` through PMP and `dmpcfg` |
+| `env/keysrc-pmp.c` | `keysrc_reset()` and `key_set(page, key)` through PMP and `dmpcfg` |
 | `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
 | `env/stubs.S` | the S/U-mode stubs the tests run |
 | `tests/t-*.c` | one ELF per test ID |
@@ -50,8 +50,8 @@ pending entry (`MPPEND`) come from the trap-return path. The stub does one thing
 the first trap ends it, and `run_lower` returns `mcause`, with the rest of the trap in `last_trap`. A trap taken in
 M mode skips the faulting instruction by its length, 2 or 4 bytes. The suite is built with C.
 
-Tests tag memory only through `dom_reset()` and `key_set()`, so they run unchanged with either key source. On Track A,
-`dom_reset()` builds a TOR chain over the 8 PMP entries:
+Tests tag memory only through `dom_reset()` and `key_set()`, so they run unchanged with either key source.
+With `KEYSRC=pmp`, `dom_reset()` builds a TOR chain over the 8 PMP entries:
 
 | PMP entry | Region | Key |
 |---|---|---|
@@ -78,4 +78,4 @@ values.
 | T-SPEC | | RTL only |
 | T-DEPUTY | | todo |
 
-Not covered yet: Track B (PTE keys under Sv39), `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.
+Not covered yet: `KEYSRC=sv39` (PTE keys under Sv39), `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.

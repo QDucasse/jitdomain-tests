@@ -1,4 +1,4 @@
-// Track A: keys come from dmpcfg, one nibble per PMP entry.
+// KEYSRC=pmp: keys come from dmpcfg, one nibble per PMP entry.
 //
 // A TOR chain over CVA6's 8 entries, all RWX so that only the domain check can
 // deny an access:

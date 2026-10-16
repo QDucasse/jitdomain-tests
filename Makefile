@@ -1,7 +1,7 @@
 CROSS ?= riscv64-unknown-elf-
 CC := $(CROSS)gcc
 
-# KEYSRC: where keys come from, pmp (Track A) or sv39 (Track B, not written yet)
+# KEYSRC: where keys come from, pmp (PMP entries) or sv39 (Sv39 PTEs, not written yet)
 # PLATFORM: link address and console, env/platform/<name>/platform.mk
 # QUICK=1: sampled T-ACC rights, for Verilator
 KEYSRC ?= pmp
