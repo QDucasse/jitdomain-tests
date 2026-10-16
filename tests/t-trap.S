@@ -27,9 +27,10 @@ SNIP(pad_ebreak, domlpad 1, 5; csrr s2, CSR_CURDOM; ebreak)
 SNIP(pad_load,   domlpad 1, 5; ld a0, 0(a1); csrr s2, CSR_CURDOM; ecall)
 SNIP(nopad,      csrr s2, CSR_CURDOM; ecall)
 
-// S-mode trap handler (stvec): record dstatus in s4, curdom in s5 and scause
-// in s7, then end with an ecall to M
-STUB(s_handler, csrr s4, CSR_DSTATUS; csrr s5, CSR_CURDOM; csrr s7, scause)
+// S-mode trap handler (stvec): record dstatus in s4, curdom in s5, scause in
+// s7, stval in s8 and dcause in s9, then end with an ecall to M
+STUB(s_handler, csrr s4, CSR_DSTATUS; csrr s5, CSR_CURDOM; csrr s7, scause;
+     csrr s8, stval; csrr s9, CSR_DCAUSE)
 
 // S mode: sret to a0 in U mode, with dstatus = a1
 STUB(s_sret, csrw sepc, a0; csrw CSR_DSTATUS, a1; li t0, 0x100; csrc sstatus, t0; sret)

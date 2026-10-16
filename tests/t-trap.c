@@ -1,7 +1,7 @@
 // T-TRAP: traps save {curdom, dpend} in xPD/xPPEND and enter DOM0; xret
 // restores both. Covers ecall, ebreak and a fault inside DOM1, resuming DOM1
 // after a fault, mret and sret restoring a pending entry, an interrupt taken
-// while an entry is pending, and traps into S mode.
+// while an entry is pending, and traps into S mode, domain faults included.
 //
 // Callers and the S-mode handler (t-trap.S) run from the image, key 0. DOM1's
 // code is copied into page 1, key 1. Interrupts are supervisor software
@@ -151,6 +151,29 @@ static void check_supervisor(void)
   CHECK_EQ(reg(20), DSTATUS_BASE | xpd(1));   // s4, dstatus
   CHECK_EQ(reg(21), 0);   // s5, curdom in the handler
   CHECK_EQ(last_trap.mdstatus, 0);
+  csr_write(medeleg, 0);
+
+  // Domain faults are delegable. A domain access fault in DOM1, with the
+  // address in stval
+  place_stub(CODE1, pad_load, pad_load_end);
+  csr_write(medeleg, 1 << CAUSE_DOMAIN_ACCESS);
+  CHECK_OK(run_u(call_1_5, 0, CODE1, PAGE(3)), PRV_S);
+  CHECK_EQ(reg(23), CAUSE_DOMAIN_ACCESS);
+  CHECK_EQ(reg(24), PAGE(3));   // s8, stval
+  CHECK_EQ(reg(20), DSTATUS_BASE | xpd(1));
+  CHECK_EQ(reg(21), 0);
+  csr_write(medeleg, 0);
+
+  // A domain CFI fault at a non-pad, with its pc in stval and the subcode in
+  // dcause
+  place_stub(CODE1, nopad, nopad_end);
+  csr_write(medeleg, 1 << CAUSE_DOMAIN_CFI);
+  CHECK_OK(run_lower((void *)CODE1, PRV_U, xppend(1, 5), 0, 0), PRV_S);
+  CHECK_EQ(reg(23), CAUSE_DOMAIN_CFI);
+  CHECK_EQ(reg(24), CODE1);
+  CHECK_EQ(reg(25), DCAUSE_LPAD);   // s9, dcause
+  CHECK_EQ(reg(20), DSTATUS_BASE | xppend(1, 5));
+  CHECK_EQ(reg(21), 0);
   csr_write(medeleg, 0);
 
   // An interrupt at a pad with an entry pending
