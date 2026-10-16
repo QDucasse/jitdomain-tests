@@ -21,7 +21,7 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
 SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
-ISA ?= rv64imac_zicsr_zifencei_zicfilp_xjitdomain
+ISA ?= rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 QEMU ?= $(abspath ../qemu/build-jitdomain/qemu-system-riscv64)

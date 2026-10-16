@@ -1,12 +1,13 @@
 // T-ACC: the access check for every (e, k, rights) combination and every
-// access kind: load (R), store (W), AMO and LR (R|W), and fetch (X). Then which
-// privilege levels are checked: U always, S with dstatus.SCHK, M only through
-// locked PMP entries.
+// access kind: load (R), store (W), AMO and LR (R|W), and fetch (X). Then SC
+// (R|W) and the cache-block operations (W), and which privilege levels are
+// checked: U always, S with dstatus.SCHK, M only through locked PMP entries.
 
 #include "env.h"
 
 STUB(stub_ecall); STUB(stub_ld); STUB(stub_sd); STUB(stub_amoadd_d); STUB(stub_lr_d);
-STUB(stub_lr_sc_d);
+STUB(stub_lr_sc_d); STUB(lr_call); STUB(pad_sc);
+STUB(stub_cbo_inval); STUB(stub_cbo_clean); STUB(stub_cbo_flush); STUB(stub_cbo_zero);
 
 enum { ACC_LOAD, ACC_STORE, ACC_AMO, ACC_LR, ACC_FETCH, NACC };
 
@@ -27,6 +28,11 @@ static const struct {
 #define STUB_OFF 0x800
 #define DATA 0x1122334455667788ULL
 #define STORED 0x0000000100000001ULL
+
+#define GATE(from, to) (1ULL << (8 * (from) + (to)))
+#define CSR_MENVCFG 0x30a
+#define CSR_SENVCFG 0x10a
+#define ENVCFG_CBO ((1 << 4) | (1 << 6) | (1 << 7))   // CBIE = flush, CBCFE, CBZE
 
 static uintptr_t stub_at(int k, int acc)
 {
@@ -159,6 +165,85 @@ static void check_lr_sc(void)
   CHECK_EQ(*data(3), STORED);
 }
 
+// The SC is checked for R|W in the domain that executes it. The LR runs in
+// DOM0 with R|W; its reservation survives the domcall, so the SC by DOM1 is
+// checked against DOM1's rights r.
+static void check_sc_rights(void)
+{
+  uintptr_t pad = PAGE(1) + 0x100;
+  for (int r = 0; r < 8; r++) {
+    dom_reset();
+    rights_set(0, 0, DR_X);
+    rights_set(1, 1, DR_X);
+    rights_set(0, 3, DR_R | DR_W);
+    rights_set(1, 3, r);
+    rights_apply();
+    csr_write(CSR_DGATE, GATE(0, 1));
+    csr_write(CSR_DSP, (uintptr_t)drs_top);
+    place_stub(pad, pad_sc, pad_sc_end);
+    *data(3) = DATA;
+
+    uint64_t cause = run_u(lr_call, 0, pad, PAGE(3));
+    if ((r & (DR_R | DR_W)) == (DR_R | DR_W)) {
+      CHECK_OK(cause, PRV_U);
+      CHECK_EQ(last_trap.a0, 0);
+      CHECK_EQ(*data(3), PAGE(3));
+    } else {
+      CHECK_DOM_FAULT(cause, PAGE(3));
+      CHECK_EQ(last_trap.epc, pad + 4);
+      CHECK_EQ(*data(3), DATA);
+    }
+  }
+}
+
+// cbo.clean, cbo.flush, cbo.inval and cbo.zero all need W. The page passes
+// the base checks for both loads and stores, so a missing W is a domain
+// fault. Skipped where Zicbom is not implemented.
+static void check_cbo(void)
+{
+  static const struct {
+    const char *name;
+    char *stub;
+  } ops[] = {
+    { "cbo.clean", stub_cbo_clean },
+    { "cbo.flush", stub_cbo_flush },
+    { "cbo.inval", stub_cbo_inval },
+    { "cbo.zero",  stub_cbo_zero },
+  };
+
+  csr_set(CSR_MENVCFG, ENVCFG_CBO);
+  csr_set(CSR_SENVCFG, ENVCFG_CBO);
+  dom_reset();
+  rights_set(1, 0, DR_X);
+  rights_set(1, 3, DR_W);
+  rights_apply();
+  if (run_u(stub_cbo_clean, 1, PAGE(3), 0) == CAUSE_ILLEGAL_INSN) {
+    printf("  cbo.*: Zicbom not implemented, skipped\n");
+    return;
+  }
+
+  for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; i++)
+    for (int r = 0; r < 8; r++) {
+      dom_reset();
+      rights_set(1, 0, DR_X);
+      rights_set(1, 3, r);
+      rights_apply();
+      *data(3) = DATA;
+
+      int before = failures;
+      uint64_t cause = run_u(ops[i].stub, 1, PAGE(3), 0);
+      if (r & DR_W) {
+        CHECK_OK(cause, PRV_U);
+        CHECK_EQ(*data(3), ops[i].stub == stub_cbo_zero ? 0 : DATA);
+      } else {
+        CHECK_DOM_FAULT(cause, PAGE(3));
+        CHECK_EQ(*data(3), DATA);
+      }
+      if (failures != before)
+        printf("    (%s r=%d)\n", ops[i].name, r);
+    }
+}
+
 // dstatus.EN = 0 disables the check, the DRS key included
 static void check_disabled(void)
 {
@@ -237,6 +322,8 @@ int main(void)
   check_matrix();
   check_isolation();
   check_lr_sc();
+  check_sc_rights();
+  check_cbo();
   check_disabled();
   check_supervisor();
 #if KEYSRC_PMP

@@ -9,7 +9,7 @@ Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU an
 ```
 make run                      # build everything and run it on Spike
 make run-t-acc                # one test
-make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_xjitdomain
+make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_xjitdomain
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
 make run SIM=qemu             # on QEMU's spike machine
@@ -86,7 +86,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 
 | ID | Test | State |
 |---|---|---|
-| T-ACC | `t-acc` | done: every `(e, k, rights)` for load, store, AMO, LR and fetch; SCHK; locked PMP in M mode |
+| T-ACC | `t-acc` | done: every `(e, k, rights)` for load, store, AMO, LR and fetch; SC in a `domcall` callee after an LR in the caller; `cbo.*` (skipped without Zicbom); SCHK; locked PMP in M mode |
 | T-TYPED | `t-typed` | done; also covers T-ORD |
 | T-ORD | `t-typed` | done |
 | T-CSR | `t-csr` | done |
@@ -99,4 +99,4 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-SPEC | | RTL only |
 | T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
 
-Not covered yet: `dmpcfg1` (illegal with 8 PMP entries), `cbo.*`.
+Not covered yet: `dmpcfg1` (illegal with 8 PMP entries).
