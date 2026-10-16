@@ -89,6 +89,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
 | T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
 | T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry, an interrupt at a pad, traps into S mode |
+| T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | | RTL only |
 | T-DEPUTY | | todo |
