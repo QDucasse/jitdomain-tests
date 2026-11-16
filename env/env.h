@@ -16,6 +16,7 @@
 #define PRV_S 1
 #define PRV_M 3
 
+#define CAUSE_FETCH_ACCESS 1
 #define CAUSE_ILLEGAL_INSN 2
 #define CAUSE_ECALL_U 8
 #define CAUSE_ECALL_S 9

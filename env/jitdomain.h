@@ -54,6 +54,13 @@
 #define NDOMS 8
 #define NKEYS 8
 
+// DRS records: 8 bytes, the caller domain in bits 63:61 and the return pc in
+// bits 60:0, sign-extended from bit 60 on a pop
+#define DRS_RECORD_SIZE 8
+#define DRS_RECORD_PC_BITS 61
+#define DRS_RECORD(pc, dom) \
+  (((uint64_t)(dom) << DRS_RECORD_PC_BITS) | ((uint64_t)(pc) & ((1ULL << DRS_RECORD_PC_BITS) - 1)))
+
 #ifdef __ASSEMBLER__
 
 // Typed loads (custom-0) and stores (custom-1): dl* rd, off(rs1) / ds* rs2, off(rs1)

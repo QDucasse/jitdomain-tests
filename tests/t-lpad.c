@@ -27,10 +27,10 @@ static uint64_t s2(void)
   return last_trap.x[18];
 }
 
-// Word i of the first record pushed on an empty DRS: 0 = pc, 1 = domain
-static uint64_t drs_first(int i)
+// The first record pushed on an empty DRS
+static uint64_t drs_first(void)
 {
-  return *(volatile uint64_t *)((uintptr_t)drs_top - 16 + 8 * i);
+  return *(volatile uint64_t *)((uintptr_t)drs_top - DRS_RECORD_SIZE);
 }
 
 // DOM0 runs the callers from key 0 and DOM1 its pads from key 1. DOM0 may
@@ -53,9 +53,8 @@ static void check_entered(uint64_t cause, char *caller, int dom)
   CHECK_EQ(s2(), dom);
   CHECK_EQ(last_trap.mdstatus, (uint64_t)dom << DSTATUS_XPD_SHIFT);
   CHECK_EQ(last_trap.x[1], (uintptr_t)caller + 4);
-  CHECK_EQ(csr_read(CSR_DSP), (uintptr_t)drs_top - 16);
-  CHECK_EQ(drs_first(0), (uintptr_t)caller + 4);
-  CHECK_EQ(drs_first(1), 0);
+  CHECK_EQ(csr_read(CSR_DSP), (uintptr_t)drs_top - DRS_RECORD_SIZE);
+  CHECK_EQ(drs_first(), DRS_RECORD((uintptr_t)caller + 4, 0));
 }
 
 // A domcall that completed but found no matching pad at target: an LPAD fault
@@ -66,7 +65,7 @@ static void check_lpad_fault(uint64_t cause, uintptr_t target, int dom, int labe
   CHECK_EQ(last_trap.epc, target);
   CHECK_EQ(last_trap.tval, target);
   CHECK_EQ(last_trap.mdstatus, (uint64_t)PEND(dom, label) << DSTATUS_XPPEND_SHIFT);
-  CHECK_EQ(csr_read(CSR_DSP), (uintptr_t)drs_top - 16);
+  CHECK_EQ(csr_read(CSR_DSP), (uintptr_t)drs_top - DRS_RECORD_SIZE);
 }
 
 static void check_match(void)

@@ -1,5 +1,6 @@
 // T-DRS: the Domain Return Stack. A domcall/domret round trip, domret to the
-// recorded pc and domain, nesting 64 deep, a corrupted dsp or record, a DRS
+// recorded pc and domain, nesting 64 deep, a corrupted dsp, a record pc
+// sign-extended on a pop, a DRS
 // that runs off its pages, dstatus.DRSKEY, and ordinary and typed accesses to
 // DRS pages.
 //
@@ -22,10 +23,10 @@ static uint64_t reg(int i)
   return last_trap.x[i];
 }
 
-// Record i from the top of the DRS: {pc, domain}
+// Record i from the top of the DRS
 static volatile uint64_t *record(int i)
 {
-  return (volatile uint64_t *)(TOP - 16 * (i + 1));
+  return (volatile uint64_t *)(TOP - DRS_RECORD_SIZE * (i + 1));
 }
 
 // DOM0 runs from key 0 and DOM1 from keys 0 and 1, and DOM0 may domcall DOM1;
@@ -82,8 +83,7 @@ static void check_round_trip(void)
   CHECK_EQ(last_trap.mdstatus, 0);
   CHECK_EQ(last_trap.epc, (uintptr_t)call_1_5 + 8);
   CHECK_EQ(csr_read(CSR_DSP), TOP);
-  CHECK_EQ(record(0)[0], (uintptr_t)call_1_5 + 4);
-  CHECK_EQ(record(0)[1], 0);
+  CHECK_EQ(*record(0), DRS_RECORD((uintptr_t)call_1_5 + 4, 0));
 }
 
 // domret goes to the recorded pc, 2-byte aligned or not, in the recorded
@@ -99,9 +99,8 @@ static void check_return_target(void)
         place_stub(CODE1, land_at2, land_at2_end);
       else
         place_stub(CODE1, land, land_end);
-      record(0)[0] = CODE1 + 2 * at2;
-      record(0)[1] = d;
-      csr_write(CSR_DSP, TOP - 16);
+      *record(0) = DRS_RECORD(CODE1 + 2 * at2, d);
+      csr_write(CSR_DSP, TOP - DRS_RECORD_SIZE);
 
       int before = failures;
       CHECK_OK(run_u(ret_only, 1, 0, 0), PRV_U);
@@ -128,12 +127,9 @@ static void check_nesting(void)
 
   // The outer record returns to the caller, the others into nest, after its
   // domcall
-  CHECK_EQ(record(0)[0], (uintptr_t)call_nest + 8);
-  CHECK_EQ(record(0)[1], 0);
-  for (int i = 1; i < depth; i++) {
-    CHECK_EQ(record(i)[0], CODE1 + 20);
-    CHECK_EQ(record(i)[1], 1);
-  }
+  CHECK_EQ(*record(0), DRS_RECORD((uintptr_t)call_nest + 8, 0));
+  for (int i = 1; i < depth; i++)
+    CHECK_EQ(*record(i), DRS_RECORD(CODE1 + 20, 1));
 }
 
 // A misaligned dsp, or one that points into a page without the DRS key,
@@ -144,7 +140,7 @@ static void check_bad_dsp(void)
     const char *name;
     uintptr_t dsp;
   } cases[] = {
-    { "misaligned",   TOP - 8 },
+    { "misaligned",   TOP - 4 },
     { "a key-6 page", PAGE(6) + 0x800 },
   };
 
@@ -169,7 +165,7 @@ static void check_bad_dsp(void)
   setup();
   place_stub(CODE1, callee, callee_end);
   csr_write(CSR_DSP, 0);
-  check_drs_unmapped(run_u(call_1_5, 0, CODE1, 0), (uintptr_t)call_1_5, 0, -16, true);
+  check_drs_unmapped(run_u(call_1_5, 0, CODE1, 0), (uintptr_t)call_1_5, 0, -DRS_RECORD_SIZE, true);
   setup();
   csr_write(CSR_DSP, 0);
   check_drs_unmapped(run_u(ret_only, 1, 0, 0), (uintptr_t)ret_only, 0, 0, false);
@@ -177,15 +173,24 @@ static void check_bad_dsp(void)
   check_drs_unmapped(run_u(ret_only, 1, 0, 0), (uintptr_t)ret_only, TOP, TOP, false);
 }
 
-// A record whose domain is out of range faults in domret
-static void check_bad_record(void)
+// domret sign-extends the record pc from bit 60: a pc field with bit 60 set
+// returns to the top of the address space, where nothing is mapped, so the
+// fetch faults there in the recorded domain
+static void check_record_pc(void)
 {
+  const uintptr_t pc = -PAGE_SIZE;
   setup();
-  place_stub(CODE1, land, land_end);
-  record(0)[0] = CODE1;
-  record(0)[1] = NDOMS;
-  csr_write(CSR_DSP, TOP - 16);
-  check_drs_fault(run_u(ret_only, 1, 0, 0), (uintptr_t)ret_only, TOP - 16);
+  *record(0) = DRS_RECORD(pc, 1);
+  csr_write(CSR_DSP, TOP - DRS_RECORD_SIZE);
+#if KEYSRC_SV39
+  CHECK_EQ(run_u(ret_only, 0, 0, 0), CAUSE_FETCH_PAGE_FAULT);
+#else
+  CHECK_EQ(run_u(ret_only, 0, 0, 0), CAUSE_FETCH_ACCESS);
+#endif
+  CHECK_EQ(last_trap.epc, pc);
+  CHECK_EQ(last_trap.tval, pc);
+  CHECK_EQ(last_trap.mdstatus, 1 << DSTATUS_XPD_SHIFT);
+  CHECK_EQ(csr_read(CSR_DSP), TOP);
 }
 
 // The DRS key is dstatus.DRSKEY: with DRSKEY = 6 page 6 can hold the DRS,
@@ -239,7 +244,7 @@ int main(void)
   check_return_target();
   check_nesting();
   check_bad_dsp();
-  check_bad_record();
+  check_record_pc();
   check_drskey();
   check_access();
   return report("t-drs");
