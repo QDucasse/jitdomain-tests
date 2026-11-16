@@ -20,11 +20,13 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
           -DQUICK=$(QUICK) -DKEYSRC_$(shell echo $(KEYSRC) | tr a-z A-Z)=1 \
           -Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--no-warn-rwx-segments
 
-SPIKE ?= $(abspath ../riscv-isa-sim/install/bin/spike)
+# The simulators have no default path. Set SPIKE (a spike built from the
+# jitdomain branch of riscv-isa-sim), QEMU (a qemu-system-riscv64 built from the
+# jitdomain branch of the QEMU fork) and CVA6_REPO_DIR in the environment or on
+# the command line; each is checked only when a recipe runs that simulator.
 ISA ?= rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
-QEMU ?= $(abspath ../qemu/build-jitdomain/qemu-system-riscv64)
 # Svade, as on Spike and CVA6: a clear A or D bit raises a page fault.
 # Smrnmi with Smdbltrp, so that t-rnmi can raise an RNMI through a double trap;
 # the vectors are fixed in env/crt.S.
@@ -50,9 +52,10 @@ RUN := $(RUN_$(SIM))
 ifeq ($(RUN),)
 $(error SIM=$(SIM) is not supported)
 endif
-ifeq ($(SIM)$(CVA6_REPO_DIR),cva6)
-$(error SIM=cva6 needs CVA6_REPO_DIR, the cva6 repo with the Verilator testbench)
-endif
+NEED_spike := SPIKE
+NEED_qemu := QEMU
+NEED_cva6 := CVA6_REPO_DIR
+need = $(if $($(1)),,$(error $(1) is not set, see the README))
 
 TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi t-spec
 # Tests that only apply to one key source
@@ -72,6 +75,7 @@ $(BUILD):
 	mkdir -p $@
 
 run: all
+	@$(call need,$(NEED_$(SIM)))
 	@fail=0; \
 	for t in $(TESTS); do \
 	  if $(RUN) $(BUILD)/$$t.elf; then echo "PASS $$t"; \
@@ -80,11 +84,13 @@ run: all
 	exit $$fail
 
 run-%: $(BUILD)/%.elf
+	@$(call need,$(NEED_$(SIM)))
 	$(RUN) $<
 
 # Compare the commit trace of the last SIM=cva6 run of a test with Spike's,
 # and print the first difference
 trace-%: $(BUILD)/%.elf
+	@$(call need,SPIKE)
 	timeout 600 $(SPIKE) --isa=$(CVA6_ISA) --pmpregions=8 --log-commits $< 2>&1 >/dev/null \
 	  | head -n 20000000 >$(BUILD)/$*.spike.log || true
 	tools/trace-diff.py $< $(BUILD)/$*.cva6/trace_rvfi_hart_00.dasm $(BUILD)/$*.spike.log

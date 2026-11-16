@@ -6,13 +6,17 @@ Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU an
 
 ## Running
 
+The simulators have no default path: set `SPIKE`, and `QEMU` or `CVA6_REPO_DIR` for the other simulators, in your
+environment or on the command line.
+
 ```
+export SPIKE=/path/to/spike   # a spike built from the jitdomain branch of riscv-isa-sim
 make run                      # build everything and run it on Spike
 make run-t-acc                # one test
-make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
+make run ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
-make run SIM=qemu             # on QEMU's spike machine
+make run SIM=qemu QEMU=/path/to/qemu-system-riscv64   # on QEMU's spike machine
 make run SIM=cva6 QUICK=1     # on the CVA6 Verilator testbench, see below
 make trace-t-acc QUICK=1      # compare the last SIM=cva6 run of a test with Spike
 ```
@@ -27,10 +31,9 @@ make trace-t-acc QUICK=1      # compare the last SIM=cva6 run of a test with Spi
 ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
 console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
 
-Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim (by
-default `../riscv-isa-sim/install/bin/spike`). `SIM=qemu` needs a QEMU built from the `jitdomain` branch of the QEMU
-fork (by default `../qemu/build-jitdomain/qemu-system-riscv64`, set with `QEMU=`), run on the `spike` machine with
-`num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6), Smrnmi and Smdbltrp (so that
+Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim
+(`SPIKE=`). `SIM=qemu` needs a `qemu-system-riscv64` built from the `jitdomain` branch of the QEMU fork (`QEMU=`), run
+on the `spike` machine with `num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6), Smrnmi and Smdbltrp (so that
 `t-rnmi` can raise an RNMI through a double trap) and `xjitdomain` (`QEMU_CPU=`). The RNMI vectors are fixed at
 `LOAD_ADDR + 4` and `+ 8` by `env/crt.S`, which also sets `mnstatus.NMIE` and clears `mstatus.MDT` at boot.
 Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp and Smrnmi; `t-lpad` detects Zicfilp at run time
