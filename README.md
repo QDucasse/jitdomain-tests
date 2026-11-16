@@ -14,6 +14,7 @@ make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
 make run SIM=qemu             # on QEMU's spike machine
 make run SIM=cva6 QUICK=1     # on the CVA6 Verilator testbench, see below
+make trace-t-acc QUICK=1      # compare the last SIM=cva6 run of a test with Spike
 ```
 
 | Variable | Default | Meaning |
@@ -57,6 +58,14 @@ Then run the whole suite, or one test, here. `QUICK=1` keeps the runs short.
 ```sh
 make run SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
 make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
+```
+
+To check CVA6 against Spike instruction by instruction, run a test on CVA6, then `make trace-<test>`: it runs the same
+ELF on Spike and prints the first instruction where the two disagree.
+
+```sh
+make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
+make trace-t-drs QUICK=1
 ```
 
 ## Layout

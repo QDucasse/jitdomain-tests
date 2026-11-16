@@ -38,6 +38,8 @@ QEMU_FLAGS := -M spike -nographic -bios none -cpu $(QEMU_CPU) -kernel
 # Each run leaves its commit trace in $(BUILD)/<test>.cva6/.
 CVA6_SIM ?= $(CVA6_REPO_DIR)/work-ver/Variane_testharness
 CVA6_CYCLES ?= 50000000
+# Spike configured as the CVA6 core, for trace-<test>
+CVA6_ISA ?= rv64imafdc_zicsr_zifencei_zicntr_xjitdomain
 
 # SIM: simulator for run and run-<test>, spike, qemu or cva6
 SIM ?= spike
@@ -79,6 +81,13 @@ run: all
 
 run-%: $(BUILD)/%.elf
 	$(RUN) $<
+
+# Compare the commit trace of the last SIM=cva6 run of a test with Spike's,
+# and print the first difference
+trace-%: $(BUILD)/%.elf
+	timeout 600 $(SPIKE) --isa=$(CVA6_ISA) --pmpregions=8 --log-commits $< 2>&1 >/dev/null \
+	  | head -n 20000000 >$(BUILD)/$*.spike.log || true
+	tools/trace-diff.py $< $(BUILD)/$*.cva6/trace_rvfi_hart_00.dasm $(BUILD)/$*.spike.log
 
 clean:
 	rm -rf build
