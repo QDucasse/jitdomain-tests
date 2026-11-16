@@ -13,13 +13,14 @@ make run SPIKE=/path/to/spike ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_
 make all QUICK=1              # sampled T-ACC, for Verilator
 make run KEYSRC=sv39          # keys from the page tables
 make run SIM=qemu             # on QEMU's spike machine
+make run SIM=cva6 QUICK=1     # on the CVA6 Verilator testbench, see below
 ```
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `KEYSRC` | `pmp` | where keys come from: `pmp` (PMP entries, through `dmpcfg`) or `sv39` (Sv39 PTEs) |
 | `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
-| `SIM` | `spike` | simulator for `run` and `run-<test>`: `spike` or `qemu` |
+| `SIM` | `spike` | simulator for `run` and `run-<test>`: `spike`, `qemu` or `cva6` |
 | `QUICK` | `0` | `1`: T-ACC tries three rights values per cell (none, exactly the needed right, all but it) instead of eight |
 
 ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
@@ -35,6 +36,28 @@ Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp and Smrnmi;
 and skips its ELP checks without it, as on CVA6, and `t-rnmi` skips itself without Smrnmi. Spike never takes an RNMI, so
 `t-rnmi` checks only `mnret` there. Each test prints `<name>: N checks, M failures` and exits with a non-zero code on
 failure.
+
+## CVA6
+
+`SIM=cva6` runs the suite on the CVA6 RTL, in its Verilator testbench, taken from the cva6 repo given by
+`CVA6_REPO_DIR`.
+
+Build the testbench once, in the cva6 repo. It needs Verilator 5.008, the version CVA6's CI uses (5.024 crashes on this
+testbench), and Spike's libraries; `verif/regress/install-verilator.sh` and `verif/regress/install-spike.sh` install
+both under `tools/`.
+
+```sh
+cd $CVA6_REPO_DIR
+make verilate RISCV=/usr NUM_JOBS=16 verilator=/path/to/verilator-5.008/bin/verilator \
+  SPIKE_INSTALL_DIR=$CVA6_REPO_DIR/tools/spike
+```
+
+Then run the whole suite, or one test, here. `QUICK=1` keeps the runs short.
+
+```sh
+make run SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
+make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
+```
 
 ## Layout
 

@@ -33,13 +33,23 @@ RNMI_EXC_VEC := $(shell printf '0x%x' $$(($(LOAD_ADDR) + 8)))
 QEMU_CPU ?= rv64,num-pmp-regions=8,zicfilp=true,svade=true,svadu=false,xjitdomain=true,smrnmi=true,smdbltrp=true,rnmi-interrupt-vector=$(RNMI_VEC),rnmi-exception-vector=$(RNMI_EXC_VEC)
 QEMU_FLAGS := -M spike -nographic -bios none -cpu $(QEMU_CPU) -kernel
 
-# SIM: simulator for run and run-<test>, spike or qemu
+# The CVA6 Verilator testbench, built with `make verilate` in the cva6 repo
+# given by CVA6_REPO_DIR (the variable the cva6 Makefile reads too).
+# Each run leaves its commit trace in $(BUILD)/<test>.cva6/.
+CVA6_SIM ?= $(CVA6_REPO_DIR)/work-ver/Variane_testharness
+CVA6_CYCLES ?= 50000000
+
+# SIM: simulator for run and run-<test>, spike, qemu or cva6
 SIM ?= spike
 RUN_spike := $(SPIKE) $(SPIKE_FLAGS)
 RUN_qemu := $(QEMU) $(QEMU_FLAGS)
+RUN_cva6 := tools/run-cva6.sh $(CVA6_SIM) $(CVA6_CYCLES)
 RUN := $(RUN_$(SIM))
 ifeq ($(RUN),)
 $(error SIM=$(SIM) is not supported)
+endif
+ifeq ($(SIM)$(CVA6_REPO_DIR),cva6)
+$(error SIM=cva6 needs CVA6_REPO_DIR, the cva6 repo with the Verilator testbench)
 endif
 
 TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi
