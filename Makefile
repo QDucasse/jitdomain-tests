@@ -54,7 +54,7 @@ ifeq ($(SIM)$(CVA6_REPO_DIR),cva6)
 $(error SIM=cva6 needs CVA6_REPO_DIR, the cva6 repo with the Verilator testbench)
 endif
 
-TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi
+TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi t-spec
 # Tests that only apply to one key source
 TESTS_sv39 := t-pte
 TESTS += $(TESTS_$(KEYSRC))

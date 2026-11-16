@@ -132,7 +132,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-RNMI | `t-rnmi` | done: `mndstatus` mask, `mnret` restoring the domain and clearing `MNPPEND`; RNMI entry with an entry pending and an RNMI exception saving into `mdstatus` (with Smdbltrp, so QEMU only); skipped without Smrnmi |
 | T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one |
 | T-SIG | | Linux user mode, todo |
-| T-SPEC | | RTL only |
+| T-SPEC | `t-spec` | done: a load denied by the domain check feeds a probe load; no probe line ends up in the data cache, while the same stub with the secret readable caches exactly its line. Skipped on models without cache timing (Spike, QEMU) |
 | T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
 
 Not covered yet: `dmpcfg1` (illegal with 8 PMP entries).
