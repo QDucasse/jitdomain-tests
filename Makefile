@@ -57,7 +57,7 @@ NEED_qemu := QEMU
 NEED_cva6 := CVA6_REPO_DIR
 need = $(if $($(1)),,$(error $(1) is not set, see the README))
 
-TESTS := t-csr t-typed t-acc t-lpad t-drs t-trap t-flush t-deputy t-rnmi t-spec
+TESTS := t-csr t-typed t-acc t-lpad t-drs t-dsp t-trap t-flush t-deputy t-rnmi t-spec
 # Tests that only apply to one key source
 TESTS_sv39 := t-pte
 TESTS += $(TESTS_$(KEYSRC))
