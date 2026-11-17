@@ -165,6 +165,7 @@ void dom_reset(void)
   csr_write(CSR_DTARGET, dtarget_identity());
   csr_write(CSR_DGATE, 0);
   csr_write(CSR_DSP, 0);
+  csr_write(CSR_DSPBASE, (uintptr_t)drs_top);
   csr_write(CSR_MDSTATUS, 0);
   csr_write(CSR_DSTATUS, DSTATUS_EN | (7 << DSTATUS_DRSKEY_SHIFT));
 }

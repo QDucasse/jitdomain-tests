@@ -13,6 +13,8 @@
 #define CSR_DTARGET  0x5c4
 #define CSR_DGATE    0x5c5
 #define CSR_DSP      0x5c6
+#define CSR_DSPBASE  0x5c7
+#define CSR_UDSP     0x8c6
 #define CSR_DCAUSE   0xdc0
 #define CSR_CURDOM   0xcc0
 #define CSR_DMPCFG0  0x7c3
@@ -50,6 +52,8 @@
 #define DCAUSE_LPAD 1
 #define DCAUSE_DRS  2
 #define DCAUSE_GATE 3
+#define DCAUSE_DSP  4
+#define DCAUSE_DSPRANGE 5
 
 #define NDOMS 8
 #define NKEYS 8

@@ -6,7 +6,7 @@
 
 #define CSR_STUBS(a) STUB(stub_csrr_##a); STUB(stub_csrw_##a)
 CSR_STUBS(0x5c0); CSR_STUBS(0x5c1); CSR_STUBS(0x5c2); CSR_STUBS(0x5c3);
-CSR_STUBS(0x5c4); CSR_STUBS(0x5c5); CSR_STUBS(0x5c6); CSR_STUBS(0xdc0);
+CSR_STUBS(0x5c4); CSR_STUBS(0x5c5); CSR_STUBS(0x5c6); CSR_STUBS(0x5c7); CSR_STUBS(0xdc0);
 CSR_STUBS(0xcc0); CSR_STUBS(0x7c3); CSR_STUBS(0x7c4); CSR_STUBS(0x7c5);
 
 static const struct {
@@ -21,6 +21,7 @@ static const struct {
   { CSR_DTARGET,  stub_csrr_0x5c4, stub_csrw_0x5c4, PRV_S, PRV_S },
   { CSR_DGATE,    stub_csrr_0x5c5, stub_csrw_0x5c5, PRV_S, PRV_S },
   { CSR_DSP,      stub_csrr_0x5c6, stub_csrw_0x5c6, PRV_S, PRV_S },
+  { CSR_DSPBASE,  stub_csrr_0x5c7, stub_csrw_0x5c7, PRV_S, PRV_S },
   { CSR_DCAUSE,   stub_csrr_0xdc0, stub_csrw_0xdc0, PRV_S, -1 },
   { CSR_CURDOM,   stub_csrr_0xcc0, stub_csrw_0xcc0, PRV_U, -1 },
   { CSR_DMPCFG0,  stub_csrr_0x7c3, stub_csrw_0x7c3, PRV_M, PRV_M },
@@ -36,6 +37,7 @@ static void check_reset_values(void)
   CHECK_EQ(csr_read(CSR_DRIGHTS2), 0);
   CHECK_EQ(csr_read(CSR_DTARGET), dtarget_identity());
   CHECK_EQ(csr_read(CSR_DGATE), 0);
+  CHECK_EQ(csr_read(CSR_DSPBASE), 0);
   CHECK_EQ(csr_read(CSR_DCAUSE), 0);
   CHECK_EQ(csr_read(CSR_CURDOM), 0);
   CHECK_EQ(csr_read(CSR_MDSTATUS), 0);
@@ -81,6 +83,9 @@ static void check_masks(void)
   csr_write(CSR_DSP, 0x80001230);
   CHECK_EQ(csr_read(CSR_DSP), 0x80001230);
   csr_write(CSR_DSP, 0);
+  csr_write(CSR_DSPBASE, -1);
+  CHECK_EQ(csr_read(CSR_DSPBASE), -1);
+  csr_write(CSR_DSPBASE, 0);
 }
 
 // curdom and dcause are read-only from M mode too: the write raises an
