@@ -71,6 +71,15 @@ make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
 make trace-t-drs QUICK=1
 ```
 
+## Benchmark
+
+`make bench` builds and runs every benchmark in `bench/`, `make bench-<name>` one of them. They are not part of
+`make run`, and their numbers only mean something with `SIM=cva6`; see [`bench/README.md`](bench/README.md).
+
+```sh
+make bench-switch SIM=cva6 CVA6_REPO_DIR=/path/to/cva6
+```
+
 ## Layout
 
 | Path | Content |
@@ -84,6 +93,7 @@ make trace-t-drs QUICK=1
 | `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
 | `env/stubs.S` | the S/U-mode stubs the tests run |
 | `tests/t-*.c`, `tests/t-*.S` | one ELF per test ID, with its own stubs if it needs any; `t-pte` is built only with `KEYSRC=sv39` |
+| `bench/<name>.c`, `bench/<name>.S` | one ELF per benchmark (`make bench-<name>`) |
 
 The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
 platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and

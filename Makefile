@@ -24,7 +24,7 @@ CFLAGS := $(ARCH) -mcmodel=medany -O2 -g -Wall -Wextra -std=gnu11 \
 # jitdomain branch of riscv-isa-sim), QEMU (a qemu-system-riscv64 built from the
 # jitdomain branch of the QEMU fork) and CVA6_REPO_DIR in the environment or on
 # the command line; each is checked only when a recipe runs that simulator.
-ISA ?= rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
+ISA ?= rv64imac_zicsr_zifencei_zicntr_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
 SPIKE_FLAGS := --isa=$(ISA) --pmpregions=8
 
 # Svade, as on Spike and CVA6: a clear A or D bit raises a page fault.
@@ -68,7 +68,9 @@ ENV_DEPS := $(ENV_SRCS) $(wildcard env/*.h) env/link.ld env/platform/$(PLATFORM)
 
 all: $(TESTS:%=$(BUILD)/%.elf)
 
-$(BUILD)/%.elf: tests/%.c $(wildcard tests/%.S) $(ENV_DEPS) | $(BUILD)
+# Expand the wildcard once % is known, so that each ELF depends on its .S
+.SECONDEXPANSION:
+$(BUILD)/%.elf: tests/%.c $$(wildcard tests/$$*.S) $(ENV_DEPS) | $(BUILD)
 	$(CC) $(CFLAGS) -T env/link.ld $(ENV_SRCS) $(wildcard tests/$*.S) $< -o $@
 
 $(BUILD):
@@ -82,6 +84,21 @@ run: all
 	  else echo "FAIL $$t"; fail=1; fi; \
 	done; \
 	exit $$fail
+
+# Benchmarks: bench/<name>.c with its stubs in bench/<name>.S. They print
+# cycle counts, which only mean something on CVA6.
+BENCHES := $(patsubst bench/%.c,%,$(wildcard bench/*.c))
+# Keep the ELFs, which make would otherwise delete as intermediate files
+.SECONDARY: $(BENCHES:%=$(BUILD)/%.elf)
+
+$(BUILD)/%.elf: bench/%.c $$(wildcard bench/$$*.S) $(ENV_DEPS) | $(BUILD)
+	$(CC) $(CFLAGS) -T env/link.ld $(ENV_SRCS) $(wildcard bench/$*.S) $< -o $@
+
+bench: $(BENCHES:%=bench-%)
+
+bench-%: $(BUILD)/%.elf
+	@$(call need,$(NEED_$(SIM)))
+	$(RUN) $<
 
 run-%: $(BUILD)/%.elf
 	@$(call need,$(NEED_$(SIM)))
@@ -98,4 +115,4 @@ trace-%: $(BUILD)/%.elf
 clean:
 	rm -rf build
 
-.PHONY: all run clean
+.PHONY: all run bench clean
