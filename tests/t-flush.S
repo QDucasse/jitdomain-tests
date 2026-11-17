@@ -34,6 +34,10 @@ SNIP(pad_dld, domlpad 1, 5; dld a2, 0(a1); csrr s2, CSR_CURDOM; ecall)
 // A callee that returns at once
 SNIP(pad_ret, domlpad 1, 5; domret)
 
+// A pad followed by a domcall to DOM0 at a1, where land_dom0 records curdom
+SNIP(pad_call, domlpad 1, 5; domcall ra, a1, 0, 7)
+STUB(land_dom0, domlpad 0, 7; csrr s2, CSR_CURDOM)
+
 // Placed in the last word of a page, so that the next fetch is the first
 // instruction of the next page
 SNIP(pad_only,  domlpad 1, 5)

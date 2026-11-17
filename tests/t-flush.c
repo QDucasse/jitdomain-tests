@@ -5,6 +5,7 @@
 // load, or the fetch of the next page. Each case runs twice, with the rights
 // arranged so that only the new domain may access, then only the old one, so a
 // pipeline that checks the access with a stale domain fails one of the two.
+// A domcall right after a domlpad is checked the same way, with the gates.
 //
 // Callers and the S-mode handlers (t-flush.S) run from the image, key 0.
 // DOM0 may access page 4, DOM1 page 3, and dtarget[1] = 6, the only domain
@@ -19,6 +20,7 @@ STUB(pad_only); STUB(call_only); STUB(land);
 STUB(s_ld); STUB(s_sret); STUB(stub_ld); STUB(stub_ecall);
 STUB(ld_call); STUB(sd_call); STUB(pad_ld_ret); STUB(ld_lr); STUB(ld_amo);
 STUB(sd_amo); STUB(ld_dld); STUB(dld_ld); STUB(ld_cbo);
+STUB(pad_call); STUB(land_dom0);
 
 #define GATE(from, to) (1ULL << (8 * (from) + (to)))
 #define CODE1 (PAGE(1) + 0x100)
@@ -110,6 +112,27 @@ static void check_domlpad(void)
   CHECK_OK(run_u(call_1_5, 0, CODE1, PAGE(6)), PRV_U);
   CHECK_EQ(reg(12), DATA6);
   check_fault(run_u(call_1_5, 0, CODE1, PAGE(4)), CODE1 + 4, PAGE(4), 1);
+}
+
+// A domcall right after a pad is checked against the gates of DOM1, and
+// pushes DOM1 as the domain to return to
+static void check_domcall_after_pad(void)
+{
+  setup();
+  place_stub(CODE1, pad_call, pad_call_end);
+  csr_write(CSR_DGATE, GATE(0, 1) | GATE(1, 0));
+  CHECK_OK(run_u(call_1_5, 0, CODE1, (uintptr_t)land_dom0), PRV_U);
+  CHECK_EQ(reg(18), 0);
+  CHECK_EQ(csr_read(CSR_DSP), TOP - 2 * DRS_RECORD_SIZE);
+  CHECK_EQ(*(volatile uint64_t *)csr_read(CSR_DSP), DRS_RECORD(CODE1 + 8, 1));
+
+  setup();
+  place_stub(CODE1, pad_call, pad_call_end);
+  csr_write(CSR_DGATE, GATE(0, 1) | GATE(0, 0));
+  CHECK_CFI_FAULT(run_u(call_1_5, 0, CODE1, (uintptr_t)land_dom0), DCAUSE_GATE);
+  CHECK_EQ(last_trap.epc, CODE1 + 4);
+  CHECK_EQ(last_trap.mdstatus, xpd(1));
+  CHECK_EQ(csr_read(CSR_DSP), TOP - DRS_RECORD_SIZE);
 }
 
 // domret returns to DOM0; the access at the return address uses DOM0's rights
@@ -319,6 +342,7 @@ static void check_cached(void)
 int main(void)
 {
   check_domlpad();
+  check_domcall_after_pad();
   check_domret();
   check_fetch();
   check_mret();

@@ -133,7 +133,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
 | T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry and clearing `xPPEND`, an interrupt at a pad, traps into S mode, domain faults delegated to S mode |
 | T-RNMI | `t-rnmi` | done: `mndstatus` mask, `mnret` restoring the domain and clearing `MNPPEND`; RNMI entry with an entry pending and an RNMI exception saving into `mdstatus` (with Smdbltrp, so QEMU only); skipped without Smrnmi |
-| T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one |
+| T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one; a `domcall` right after `domlpad`, checked against the new domain's gates |
 | T-SIG | | Linux user mode, todo |
 | T-SPEC | `t-spec` | done: a load denied by the domain check feeds a probe load; no probe line ends up in the data cache, while the same stub with the secret readable caches exactly its line. Skipped on models without cache timing (Spike, QEMU) |
 | T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
