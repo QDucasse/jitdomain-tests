@@ -1,12 +1,6 @@
-// T-DRS: the Domain Return Stack. A domcall/domret round trip, domret to the
-// recorded pc and domain, nesting 64 deep, a corrupted dsp, a record pc
-// sign-extended on a pop, a DRS
-// that runs off its pages, dstatus.DRSKEY, and ordinary and typed accesses to
-// DRS pages.
-//
-// Callers (t-drs.S) run in DOM0 from the image, key 0; DOM1's code is copied
-// into page 1, key 1. The DRS pages have key 7, and DOM0 and DOM1 have no
-// rights on it: implicit DRS accesses need none.
+// T-DRS: the Domain Return Stack that domcall pushes and domret pops. The
+// DRS pages have key 7, on which no domain has rights: implicit DRS accesses
+// need none.
 
 #include "env.h"
 

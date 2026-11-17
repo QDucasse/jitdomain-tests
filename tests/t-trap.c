@@ -1,10 +1,5 @@
 // T-TRAP: traps save {curdom, dpend} in xPD/xPPEND and enter DOM0; xret
-// restores both and clears xPPEND. Covers ecall, ebreak and a fault inside DOM1, resuming DOM1
-// after a fault, mret and sret restoring a pending entry, an interrupt taken
-// while an entry is pending, and traps into S mode, domain faults included.
-//
-// Callers and the S-mode handler (t-trap.S) run from the image, key 0. DOM1's
-// code is copied into page 1, key 1. Interrupts are supervisor software
+// restores both and clears xPPEND. Interrupts are supervisor software
 // interrupts raised through mip.SSIP, so no platform timer is needed.
 
 #include "env.h"
@@ -63,6 +58,7 @@ static void check_from_dom1(uint64_t cause, uint64_t want)
   CHECK_EQ(csr_read(CSR_CURDOM), 0);
 }
 
+// ecall, ebreak and a domain fault inside DOM1, and resuming DOM1 after one
 static void check_exceptions(void)
 {
   setup();

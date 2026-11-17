@@ -1,11 +1,6 @@
-// T-RNMI: an RNMI saves {curdom, dpend} in mndstatus.MNPD/MNPPEND and enters
-// DOM0; mnret restores both and clears MNPPEND. An exception inside the RNMI
-// handler is an ordinary M-mode trap: it saves into mdstatus and leaves
-// mndstatus alone.
-//
-// Everything runs in M mode, where accesses are not domain-checked. The mnret
-// checks need Smrnmi only. The RNMI itself is raised through an M-mode double
-// trap, so those checks also need Smdbltrp.
+// T-RNMI: an RNMI saves {curdom, dpend} in mndstatus and enters DOM0; mnret
+// restores both and clears MNPPEND. The mnret checks need Smrnmi; the RNMI
+// itself comes from an M-mode double trap, so its checks need Smdbltrp too.
 
 #include "env.h"
 

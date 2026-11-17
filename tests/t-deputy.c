@@ -1,25 +1,7 @@
-// T-DEPUTY: what JITDomain stops in a JIT exploit chain, and what it does not.
-// The chain follows NoJITsu's SpiderMonkey exploit (CVE-2019-11707): an
-// out-of-bounds write from a heap array overwrites the data pointer of the
-// next ByteArray, and the runtime's at:/at:put: primitives then read and write
-// wherever it points, with the runtime's rights.
-//
-// Every step runs with dstatus.EN = 0, where it must succeed, then with
-// EN = 1. With EN = 1 the steps JITDomain stops must raise a domain access
-// fault on the expected address, and the others must still succeed. The test
-// prints both outcomes and who is responsible for each step.
-//
-// The configuration is the Cog one: K0 = runtime (the image: DOM0 code and
-// runtime data), K1 = heap (page 1), K2 = DOM2 table (page 2), K3 = code
-// zone (page 3). DOM1 has RW on K1 and RX on K3, DOM2 RW on K2, DOM0
-// everything. dtarget[1] = 2 lets JIT code reach the table with typed
-// accesses, and dtarget[0] = 1 lets the runtime follow heap pointers with
-// DOM1's rights.
-//
-// The steps after the first start from a heap that the out-of-bounds write
-// has already corrupted, so that each one shows a single effect. The
-// runtime's index and tag checks on table handles are software, and are not
-// checked here.
+// T-DEPUTY: which steps of a JIT exploit chain JITDomain stops, and which it
+// leaves to software. The chain follows NoJITsu's SpiderMonkey exploit
+// (CVE-2019-11707). Each step runs with dstatus.EN = 0, then 1, and the test
+// prints both outcomes with the owner of the step.
 
 #include "env.h"
 
@@ -65,7 +47,10 @@ static uintptr_t place(uintptr_t *at, uintptr_t dst, const char *start, const ch
 }
 
 // The Cog configuration, with the heap, table and runtime data reset, and
-// JITDomain enabled or not
+// JITDomain enabled or not. K0 is the runtime (the image), K1 the heap, K2
+// the DOM2 table and K3 the code zone. JIT code (DOM1) reaches the table
+// with typed accesses (dtarget[1] = 2), and the runtime follows heap
+// pointers with DOM1's rights (dtarget[0] = 1).
 static void setup(bool enabled)
 {
   dom_reset();
@@ -148,7 +133,9 @@ static int normal_typed(void)
   return outcome(cause, last_trap.a0 == 0x11, 0);
 }
 
-// Stage 2: the forged ByteArray handed to the runtime
+// Stage 2: the forged ByteArray handed to the runtime, whose at:/at:put: read
+// and write wherever it points. Each step starts from a heap that the
+// out-of-bounds write already corrupted, so that it shows a single effect.
 static int deputy_leak(void *prim)
 {
   BA[0] = (uintptr_t)secret;
@@ -169,7 +156,8 @@ static int deputy_overwrite_ordinary(void) { return deputy_overwrite(prim_at_put
 static int deputy_overwrite_typed(void) { return deputy_overwrite(prim_at_put_typed); }
 
 // Stage 3: handles into the DOM2 table instead of raw pointers. A handle
-// swapped for another valid one of the same type still works.
+// swapped for another valid one of the same type still works. The runtime's
+// index and tag checks are software, and not tested here.
 static int handle_swap(void)
 {
   HANDLE[0] = 1;
@@ -218,6 +206,8 @@ static void column(const char *s, int width)
     platform_putchar(' ');
 }
 
+// With EN = 0 every step succeeds. With EN = 1 the steps JITDomain stops
+// fault on the expected address, and the others still succeed.
 int main(void)
 {
   column("step", 42);

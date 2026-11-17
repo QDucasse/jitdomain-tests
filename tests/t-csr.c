@@ -156,8 +156,8 @@ static void check_curdom_value(void)
   }
 }
 
-// dmpcfg L: a locked nibble ignores writes until reset; the others stay writable.
-// Locks the last entry's nibble, so this runs last.
+// dmpcfg L: a locked nibble ignores writes until reset; the others stay
+// writable. Locks the last entry's nibble, so this runs last.
 static void check_dmpcfg_lock(void)
 {
   const int sh = 4 * (NPMP - 1);

@@ -1,12 +1,7 @@
-// T-SPEC: a load denied by the domain check returns no data, not even to the
-// instructions that execute after it before the fault is taken. A U-mode stub
-// loads a secret and uses it to index a probe array; afterwards the monitor
-// times a load of each probe line to see which ones the stub brought into the
-// data cache.
-//
-// The timing only means something on the RTL. On a model without cache
-// timing (Spike, QEMU) the calibration finds no difference between a hit and
-// a miss, and the test skips itself.
+// T-SPEC: a load denied by the domain check returns no data, not even
+// transiently. A stub indexes a probe array with the secret, and the monitor
+// then times each probe line. Without cache timing (Spike, QEMU) calibration
+// sees no hit/miss difference, and the test skips itself.
 
 #include "env.h"
 

@@ -1,11 +1,6 @@
-// T-DSP: udsp, the U-mode alias of dsp. Only DOM0 may access it, and only
-// with dstatus.EN = 1. A write is accepted only if dsp <= new <= dspbase, so
-// DOM0 can discard DRS records but never bring popped ones back; reads are
-// never range-checked. Also: push and pop after a reset, a misaligned reset,
-// dsp > dspbase left by S mode, dspbase at its reset value, and nested bases.
-//
-// Stubs (t-dsp.S) run from the image, key 0, which every domain may fetch;
-// DOM1's callee is copied into page 1, key 1. DOM0 may domcall DOM1.
+// T-DSP: udsp, the U-mode alias of dsp. Only DOM0 may access it, with
+// dstatus.EN = 1, and a write must stay in [dsp, dspbase], so DOM0 can
+// discard DRS records but never bring popped ones back.
 
 #include "env.h"
 
@@ -35,6 +30,8 @@ static volatile uint64_t *record(int i)
   return (volatile uint64_t *)(TOP - DRS_RECORD_SIZE * (i + 1));
 }
 
+// Every domain may fetch the stubs (key 0), DOM1 its callee in page 1, and
+// DOM0 may domcall DOM1
 static void setup(uint64_t dsp, uint64_t dspbase)
 {
   dom_reset();
@@ -154,7 +151,7 @@ static void check_range(void)
   check_fault(udsp_rw, 0, -8ULL, DCAUSE_DSPRANGE);
   check_fault(udsp_rwi, 0, 0, DCAUSE_DSPRANGE);
 
-  // csrrs: dsp | rs1. Setting bit 3 moves up by 8; a high bit goes past dspbase.
+  // csrrs: dsp | rs1. Setting bit 3 moves up by 8; a high bit passes dspbase.
   check_fault(udsp_rs, 0, 1ULL << 40, DCAUSE_DSPRANGE);
   check_ok(udsp_rs, 0, 8, TOP - 8);
   setup(dsp, TOP);

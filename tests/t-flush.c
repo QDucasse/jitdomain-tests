@@ -1,16 +1,7 @@
-// T-FLUSH: the instruction right after a domain change is checked against the
-// new domain, and an access never reuses the rights an earlier access to the
-// same page was granted under another domain or as another kind. The change is a domlpad, a domret, an mret or sret, or a trap
-// into S mode; the next instruction is an ordinary load or store, a typed
-// load, or the fetch of the next page. Each case runs twice, with the rights
-// arranged so that only the new domain may access, then only the old one, so a
-// pipeline that checks the access with a stale domain fails one of the two.
-// A domcall right after a domlpad is checked the same way, with the gates.
-//
-// Callers and the S-mode handlers (t-flush.S) run from the image, key 0.
-// DOM0 may access page 4, DOM1 page 3, and dtarget[1] = 6, the only domain
-// that may read page 6. Code that must fall through into the next page is
-// placed in the last word of page 1, followed by page 2.
+// T-FLUSH: the instruction right after a domain change uses the new domain's
+// rights, and no access reuses rights cached for another domain or kind.
+// Each case runs twice, allowed only for the new domain, then only for the
+// old one, so a pipeline that checks with a stale domain fails one of them.
 
 #include "env.h"
 

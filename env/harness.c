@@ -17,7 +17,7 @@ static void put_u(uint64_t v, unsigned base)
     platform_putchar(buf[--n]);
 }
 
-// %s %c %d %u %x, an optional 'l' is accepted and ignored (everything is 64-bit)
+// %s %c %d %u %x; an 'l' is accepted and ignored (everything is 64-bit)
 int printf(const char *fmt, ...)
 {
   va_list ap;
@@ -120,7 +120,8 @@ void rights_clear(void)
   drights[0] = drights[1] = drights[2] = 0;
 }
 
-// drights2:drights1:drights0, {X, W, R} at bit 3*(8*e+k); an entry may straddle two CSRs
+// drights2:drights1:drights0, {X, W, R} at bit 3*(8*e+k); an entry may
+// straddle two CSRs
 void rights_set(int e, int k, int r)
 {
   for (int b = 0; b < 3; b++) {

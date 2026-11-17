@@ -1,6 +1,5 @@
-// JITDomain constants and,
-// for assembly sources, .insn macros for the custom instructions so that a
-// stock toolchain can assemble them.
+// JITDomain constants and, for assembly sources, .insn macros for the custom
+// instructions, so that a stock toolchain can assemble them.
 
 #ifndef JITDOMAIN_H
 #define JITDOMAIN_H
@@ -67,7 +66,8 @@
 
 #ifdef __ASSEMBLER__
 
-// Typed loads (custom-0) and stores (custom-1): dl* rd, off(rs1) / ds* rs2, off(rs1)
+// Typed loads (custom-0) and stores (custom-1):
+//   dl* rd, off(rs1)    ds* rs2, off(rs1)
 .macro dlb rd, addr
   .insn i 0x0b, 0, \rd, \addr
 .endm

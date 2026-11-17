@@ -1,15 +1,7 @@
-// KEYSRC=sv39: keys come from the leaf PTEs, bits [56:54].
-//
-// An identity map of [LOAD_ADDR, drs_top) with 4 KiB pages: the image with
-// key 0, page k with key k, and the two DRS pages with key 7. The stacks above
-// the DRS are not mapped, so S and U mode cannot reach them.
-//
-// S mode cannot fetch from U pages, so there are two copies of the tables, one
-// with U pages and one with S pages, and run_lower() picks the one for the
-// stub's privilege. Both also map the image's 1 GiB region at S_ALIAS as one
-// S page, so that S mode can run image code, a trap handler for instance,
-// while the U-mode tables are active. One PMP entry covers [0, drs_top) with RWX; its key is
-// ignored under translation.
+// KEYSRC=sv39: keys come from the leaf PTEs, bits [56:54], over an identity
+// map of [LOAD_ADDR, drs_top): the image with key 0, page k with key k, the
+// DRS with key 7. The stacks above are not mapped, so S and U cannot reach
+// them.
 
 #include "env.h"
 #include "sv39.h"
@@ -21,7 +13,9 @@
 
 extern char LOAD_ADDR[];
 
-// [U, S][root, level 1, level 0]
+// S mode cannot fetch from U pages, so the tables come in two copies, one
+// with U leaves and one with S leaves; run_lower() picks the one for the
+// stub's privilege. [U, S][root, level 1, level 0]
 static uint64_t tables[2][3][512] __attribute__((aligned(PAGE_SIZE)));
 uint64_t keysrc_satp[2];
 
@@ -38,6 +32,8 @@ static void leaf_key(uintptr_t va, int key)
   }
 }
 
+// Both copies map the image's 1 GiB region at S_ALIAS as one S page, so that
+// S mode can run image code (a trap handler) while the U tables are active
 void *keysrc_s_alias(void *code)
 {
   return (void *)(S_ALIAS + ((uintptr_t)code & GIGA_MASK));
@@ -48,6 +44,8 @@ uint64_t *sv39_root(int t)
   return tables[t][0];
 }
 
+// One PMP entry covers [0, drs_top) with RWX; its key is ignored under
+// translation
 void keysrc_reset(void)
 {
   uintptr_t base = (uintptr_t)LOAD_ADDR, top = (uintptr_t)drs_top;

@@ -1,11 +1,5 @@
-// T-LPAD: domcall must land on a matching, 4-byte aligned domlpad. Covers a
-// non-pad target, a pad with the wrong domain or the wrong non-zero label,
-// wildcard pads, a 2-byte aligned pad, the pad's fetch rights, the gate,
-// a domcall into the caller's own domain, a pad reached without domcall,
-// plain jumps and branches into another domain's code, and Zicfilp's ELP.
-//
-// Callers (t-lpad.S) run in DOM0 from the image, key 0. Pads are copied into
-// page k, key k. A pad records curdom in s2 and ends with an ecall.
+// T-LPAD: domcall must land on a matching, 4-byte aligned domlpad. The pads
+// are copied into page k, key k; each records curdom in s2, then ecalls.
 
 #include "env.h"
 
@@ -68,6 +62,7 @@ static void check_lpad_fault(uint64_t cause, uintptr_t target, int dom, int labe
   CHECK_EQ(csr_read(CSR_DSP), (uintptr_t)drs_top - DRS_RECORD_SIZE);
 }
 
+// A pad with the called domain and label, or label 0 (a wildcard)
 static void check_match(void)
 {
   setup();
@@ -86,6 +81,7 @@ static void check_match(void)
   check_entered(run_u(call_1_0, 0, TARGET, 0), call_1_0, 1);
 }
 
+// A target that is not a pad, or a pad for another domain or label
 static void check_mismatch(void)
 {
   static const struct {

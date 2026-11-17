@@ -97,7 +97,8 @@ static void check_target(void)
     CHECK_EQ(*word(2, 16), FILL);
   }
 
-  // The target's rights apply, not the caller's: DOM1 may access K1, DOM2 may not
+  // The target's rights apply, not the caller's: DOM1 may access K1, DOM2
+  // may not
   CHECK_DOM_FAULT(run_u(stub_dld, 1, PAGE(1), 0), PAGE(1));
   CHECK_OK(run_u(stub_ld, 1, PAGE(1), 0), PRV_U);
   CHECK_EQ(last_trap.a0, DATA);
@@ -196,7 +197,8 @@ static void check_drs_key(void)
   CHECK_DOM_FAULT(run_u(stub_dsd, 1, PAGE(7), 0), PAGE(7));
 }
 
-// S mode: typed accesses are checked only with dstatus.SCHK, through dtarget too
+// S mode: typed accesses are checked only with dstatus.SCHK, through dtarget
+// too
 static void check_supervisor(void)
 {
   setup();

@@ -1,15 +1,8 @@
-// T-PTE: keys from Sv39 PTEs, built with KEYSRC=sv39 only. The key comes from
-// the PTE that maps the access; a key on a non-leaf PTE, or any key with
-// dstatus.EN = 0, is a page fault of the access type; the base PTE checks
-// come before the domain check; dmpcfg is ignored under translation; a
-// superpage leaf gives its whole range one key.
-//
-// The checks edit an alias of the test pages in the U tree, so the identity
-// map the code runs from is never touched:
+// T-PTE: keys from Sv39 PTEs (KEYSRC=sv39 only). The checks edit an alias of
+// the test pages, never the identity map the code runs from:
 //   root[1] -> l1    l1[0] -> l0    l0[k] = pages[k], key k
 //                    l1[1] = a 2 MiB leaf over the image's region, key 0
-// run_lower() flushes the TLB before every stub, so edits take effect at the
-// next run.
+// run_lower() flushes the TLB before every stub, so edits apply at once.
 
 #include "env.h"
 #include "sv39.h"

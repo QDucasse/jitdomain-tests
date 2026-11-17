@@ -1,9 +1,6 @@
 // T-DEPUTY JIT code and runtime primitives. The JIT snippets are copied into
-// the code-zone page and take their arguments from a frame in the heap at a0:
-// {a0, a1, a2, target}. The primitives run from the image in DOM0 and are
-// entered through labelled pads: 1 = at:, 2 = at:put:, 3 = at: through the
-// DOM2 table. Each ByteArray primitive has an ordinary build and a typed one,
-// which follows heap-resident pointers with typed accesses (dtarget[0] = 1).
+// the code zone and read their arguments from a heap frame at a0; the
+// primitives run in DOM0 from the image.
 
 #include "jitdomain.h"
 
@@ -34,7 +31,8 @@ SNIP(jit_typed_store,
   ld t0, 0(a0); ld t2, 16(a0);
   dsd t2, 0(t0); ecall)
 
-// JIT code: call a primitive with {a0, a1, a2} through the trampoline label
+// JIT code: call a primitive with {a0, a1, a2} through its pad label:
+// 1 = at:, 2 = at:put:, 3 = at: through the DOM2 table
 .macro jit_call label
   ld t3, 24(a0); ld a2, 16(a0); ld a1, 8(a0); ld a0, 0(a0);
   domcall ra, t3, 0, \label; ecall
@@ -44,7 +42,8 @@ SNIP(jit_call_2, jit_call 2)
 SNIP(jit_call_3, jit_call 3)
 
 // ByteArray {data, len}: at:(ba, i) returns data[i], at:put:(ba, i, v) stores
-// v there; both return -1 when i is out of bounds
+// v there; both return -1 when i is out of bounds. The typed builds follow
+// the heap pointers with typed accesses (dtarget[0] = 1).
 FUNC(prim_at,
   domlpad 0, 1;
   ld t0, 8(a0); bgeu a1, t0, 1f;

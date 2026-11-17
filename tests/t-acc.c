@@ -1,7 +1,5 @@
-// T-ACC: the access check for every (e, k, rights) combination and every
-// access kind: load (R), store (W), AMO and LR (R|W), and fetch (X). Then SC
-// (R|W) and the cache-block operations (W), and which privilege levels are
-// checked: U always, S with dstatus.SCHK, M only through locked PMP entries.
+// T-ACC: the access check, for every access kind and the rights each one
+// needs, and which privilege levels it applies to.
 
 #include "env.h"
 
@@ -114,6 +112,8 @@ static int rights_sample(int acc, int i)
 }
 #endif
 
+// Every (e, k, rights) for each kind in accs[]: allowed exactly when the
+// rights include what the kind needs
 static void check_matrix(void)
 {
   dom_reset();

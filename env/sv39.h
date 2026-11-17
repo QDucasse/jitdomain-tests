@@ -28,7 +28,7 @@ static inline uint64_t pte_key(uint64_t p, int key)
   return (p & ~PTE_KEY) | (uint64_t)key << PTE_KEY_SHIFT;
 }
 
-// Root table of the tree run_lower() uses for U stubs (t = 0) or S stubs (t = 1)
+// Root of the tables run_lower() uses for U stubs (t = 0) or S stubs (t = 1)
 uint64_t *sv39_root(int t);
 
 #endif
