@@ -23,6 +23,13 @@
 
 #define DRSKEY 7
 
+#ifndef SEGV_PKUERR
+#define SEGV_PKUERR 4
+#endif
+#ifndef SEGV_CPERR
+#define SEGV_CPERR 10
+#endif
+
 struct jitdomain_matrices {
   uint64_t drights[3];
   uint64_t dtarget;
@@ -43,6 +50,9 @@ static inline long sys(long nr, long a0, long a1, long a2, long a3, long a4)
 #define CSR_STR_(x) #x
 #define CSR_STR(x) CSR_STR_(x)
 #define csr_read(csr) ({ uint64_t __v; __asm__ volatile("csrr %0, " CSR_STR(csr) : "=r"(__v) :: "memory"); __v; })
+
+// .insn takes a signed 12-bit immediate
+#define DOM_IMM(dom, label) (((((dom) << 9) | (label)) ^ 0x800) - 0x800)
 
 static inline uint64_t dtarget_identity(void)
 {
