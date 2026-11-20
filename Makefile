@@ -116,7 +116,7 @@ trace-%: $(BUILD)/%.elf
 # is a qemu-riscv64 built from the jitdomain branch of the QEMU fork
 LINUX_CC ?= riscv64-linux-gnu-gcc
 QEMU_USER_CPU ?= rv64,xjitdomain=true
-USER_TESTS := u-enable u-pkey u-matrix u-access u-drs
+USER_TESTS := u-enable u-pkey u-matrix u-access u-drs u-domain
 USER_BUILD := build/user
 USER_CFLAGS := -O2 -g -Wall -Wextra -std=gnu11 -static -pthread
 RUN_USER = $(QEMU_USER) -cpu $(QEMU_USER_CPU)
