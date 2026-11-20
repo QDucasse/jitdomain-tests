@@ -112,7 +112,37 @@ trace-%: $(BUILD)/%.elf
 	  | head -n 20000000 >$(BUILD)/$*.spike.log || true
 	tools/trace-diff.py $< $(BUILD)/$*.cva6/trace_rvfi_hart_00.dasm $(BUILD)/$*.spike.log
 
+# Linux user-space tests, user/u-*.c, run under QEMU linux-user: QEMU_USER
+# is a qemu-riscv64 built from the jitdomain branch of the QEMU fork
+LINUX_CC ?= riscv64-linux-gnu-gcc
+QEMU_USER_CPU ?= rv64,xjitdomain=true
+USER_TESTS :=
+USER_BUILD := build/user
+USER_CFLAGS := -O2 -g -Wall -Wextra -std=gnu11 -static -pthread
+RUN_USER = $(QEMU_USER) -cpu $(QEMU_USER_CPU)
+
+user: $(USER_TESTS:%=$(USER_BUILD)/%.elf)
+
+$(USER_BUILD)/%.elf: user/%.c user/user.c user/user.h env/jitdomain.h | $(USER_BUILD)
+	$(LINUX_CC) $(USER_CFLAGS) user/user.c $< -o $@
+
+$(USER_BUILD):
+	mkdir -p $@
+
+run-user: user
+	@$(call need,QEMU_USER)
+	@fail=0; \
+	for t in $(USER_TESTS); do \
+	  if $(RUN_USER) $(USER_BUILD)/$$t.elf; then echo "PASS $$t"; \
+	  else echo "FAIL $$t"; fail=1; fi; \
+	done; \
+	exit $$fail
+
+run-u-%: $(USER_BUILD)/u-%.elf
+	@$(call need,QEMU_USER)
+	$(RUN_USER) $<
+
 clean:
 	rm -rf build
 
-.PHONY: all run bench clean
+.PHONY: all run bench user run-user clean

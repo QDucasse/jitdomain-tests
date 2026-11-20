@@ -71,6 +71,19 @@ make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
 make trace-t-drs QUICK=1
 ```
 
+## Linux user space
+
+`user/u-*.c` are Linux programs for the user-space interface: the `PR_RISCV_JITDOMAIN` `prctl`. They run under QEMU
+linux-user, with a `qemu-riscv64` built from the `jitdomain` branch of the QEMU fork (`QEMU_USER=`), and are built
+static with `riscv64-linux-gnu-gcc` (`LINUX_CC=`). ELFs go to `build/user/`.
+
+```sh
+make run-user QEMU_USER=/path/to/qemu-riscv64     # every user test
+```
+
+Each test exits with code 1 when the CPU lacks `xjitdomain` (`QEMU_USER_CPU=`, default `rv64,xjitdomain=true`), and
+otherwise prints `<name>: N checks, M failures` like the bare-metal tests.
+
 ## Benchmark
 
 `make bench` builds and runs every benchmark in `bench/`, `make bench-<name>` one of them. They are not part of
@@ -94,6 +107,8 @@ make bench-switch SIM=cva6 CVA6_REPO_DIR=/path/to/cva6
 | `env/stubs.S` | the S/U-mode stubs the tests run |
 | `tests/t-*.c`, `tests/t-*.S` | one ELF per test ID, with its own stubs if it needs any; `t-pte` is built only with `KEYSRC=sv39` |
 | `bench/<name>.c`, `bench/<name>.S` | one ELF per benchmark (`make bench-<name>`) |
+| `user/user.c`, `user/user.h` | Linux tests: `prctl` wrappers, `CHECK_*`, `TRY()` catching `SIGSEGV`/`SIGILL` |
+| `user/u-*.c` | one Linux program per user-space test (`make run-u-<name>`) |
 
 The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
 platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
