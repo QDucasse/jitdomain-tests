@@ -2,7 +2,7 @@
 // PR_JITDOMAIN_ENABLE. Keys 1-6 are handed
 // out lowest first, key 7 is the DRS key and never handed out, flags and
 // init_rights must be 0, and only allocated keys (and key 0) tag pages.
-// What a tag does to accesses is checked with the matrices.
+// What a tag does to accesses is u-access's business.
 
 #include "user.h"
 
