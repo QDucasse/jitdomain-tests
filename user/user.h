@@ -1,5 +1,6 @@
-// Shared helpers for the Linux user-space tests: the JITDomain prctl,
-// checks, and catching the signals a faulting instruction raises.
+// Shared helpers for the Linux user-space tests: the JITDomain prctl and
+// pkeys syscalls, checks, and catching the signals a faulting instruction
+// raises.
 
 #ifndef USER_H
 #define USER_H
@@ -12,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <sys/syscall.h>
 #include "../env/jitdomain.h"
 
@@ -46,6 +48,9 @@ static inline long sys(long nr, long a0, long a1, long a2, long a3, long a4)
 #define jd_enable() jd_prctl(PR_JITDOMAIN_ENABLE, 0, 0, 0)
 #define jd_set(m) jd_prctl(PR_JITDOMAIN_SET_MATRICES, (long)(m), 0, 0)
 #define jd_get(m) jd_prctl(PR_JITDOMAIN_GET_MATRICES, (long)(m), 0, 0)
+#define jd_pkey_alloc(f, r) sys(SYS_pkey_alloc, f, r, 0, 0, 0)
+#define jd_pkey_free(k) sys(SYS_pkey_free, k, 0, 0, 0, 0)
+#define jd_pkey_mprotect(a, l, p, k) sys(SYS_pkey_mprotect, (long)(a), l, p, k, 0)
 
 #define CSR_STR_(x) #x
 #define CSR_STR(x) CSR_STR_(x)

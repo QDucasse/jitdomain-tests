@@ -73,9 +73,9 @@ make trace-t-drs QUICK=1
 
 ## Linux user space
 
-`user/u-*.c` are Linux programs for the user-space interface: the `PR_RISCV_JITDOMAIN` `prctl`. They run under QEMU
-linux-user, with a `qemu-riscv64` built from the `jitdomain` branch of the QEMU fork (`QEMU_USER=`), and are built
-static with `riscv64-linux-gnu-gcc` (`LINUX_CC=`). ELFs go to `build/user/`.
+`user/u-*.c` are Linux programs for the user-space interface: the `PR_RISCV_JITDOMAIN` `prctl` and the protection-key
+syscalls. They run under QEMU linux-user, with a `qemu-riscv64` built from the `jitdomain` branch of the QEMU fork
+(`QEMU_USER=`), and are built static with `riscv64-linux-gnu-gcc` (`LINUX_CC=`). ELFs go to `build/user/`.
 
 ```sh
 make run-user QEMU_USER=/path/to/qemu-riscv64     # every user test
@@ -108,7 +108,7 @@ make bench-switch SIM=cva6 CVA6_REPO_DIR=/path/to/cva6
 | `env/stubs.S` | the S/U-mode stubs the tests run |
 | `tests/t-*.c`, `tests/t-*.S` | one ELF per test ID, with its own stubs if it needs any; `t-pte` is built only with `KEYSRC=sv39` |
 | `bench/<name>.c`, `bench/<name>.S` | one ELF per benchmark (`make bench-<name>`) |
-| `user/user.c`, `user/user.h` | Linux tests: `prctl` wrappers, `CHECK_*`, `TRY()` catching `SIGSEGV`/`SIGILL` |
+| `user/user.c`, `user/user.h` | Linux tests: `prctl` and pkeys wrappers, `CHECK_*`, `TRY()` catching `SIGSEGV`/`SIGILL` |
 | `user/u-*.c` | one Linux program per user-space test (`make run-u-<name>`) |
 
 The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
@@ -161,7 +161,7 @@ M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYS
 | T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry and clearing `xPPEND`, an interrupt at a pad, traps into S mode, domain faults delegated to S mode |
 | T-RNMI | `t-rnmi` | done: `mndstatus` mask, `mnret` restoring the domain and clearing `MNPPEND`; RNMI entry with an entry pending and an RNMI exception saving into `mdstatus` (with Smdbltrp, so QEMU only); skipped without Smrnmi |
 | T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one; a `domcall` right after `domlpad`, checked against the new domain's gates |
-| T-SIG | `user/u-*` | in progress, QEMU linux-user only: `u-enable` (before and after `ENABLE`, existing and new threads, a second `ENABLE`), `u-matrix` (round trip, rejected values, `dgate` seen by `domcall` in another thread); still todo: accesses per key, `DRS_ALLOC`, `SIGSYS`, fault reporting, signals, `fork`/`exec`, a VM↔JIT crossing |
+| T-SIG | `user/u-*` | in progress, QEMU linux-user only: `u-enable` (before and after `ENABLE`, existing and new threads, a second `ENABLE`), `u-pkey` (allocation order, `ENOSPC`, freeing, which keys `pkey_mprotect` accepts), `u-matrix` (round trip, rejected values, `dgate` seen by `domcall` in another thread); still todo: accesses per key, `DRS_ALLOC`, `SIGSYS`, fault reporting, signals, `fork`/`exec`, a VM↔JIT crossing |
 | T-SPEC | `t-spec` | done: a load denied by the domain check feeds a probe load; no probe line ends up in the data cache, while the same stub with the secret readable caches exactly its line. Skipped on models without cache timing (Spike, QEMU) |
 | T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
 
