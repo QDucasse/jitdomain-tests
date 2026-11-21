@@ -1,4 +1,4 @@
-// T-RNMI helpers and RNMI handlers. Everything here runs in M mode.
+// t-rnmi helpers and RNMI handlers. Everything here runs in M mode.
 
 #include "jitdomain.h"
 

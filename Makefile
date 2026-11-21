@@ -3,7 +3,7 @@ CC := $(CROSS)gcc
 
 # KEYSRC: where keys come from, pmp (PMP entries) or sv39 (Sv39 PTEs)
 # PLATFORM: link address and console, env/platform/<name>/platform.mk
-# QUICK=1: sampled T-ACC rights, for Verilator
+# QUICK=1: sampled t-acc rights, for Verilator
 KEYSRC ?= pmp
 PLATFORM ?= htif
 QUICK ?= 0

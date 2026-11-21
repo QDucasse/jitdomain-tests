@@ -1,4 +1,4 @@
-// T-ACC stubs and snippets for the LR/SC and cache-block cases. The pad is
+// t-acc stubs and snippets for the LR/SC and cache-block cases. The pad is
 // copied into a test page, so it is position independent and uncompressed.
 
 #include "jitdomain.h"

@@ -1,47 +1,82 @@
 # JITDomain conformance suite
 
-Directed, self-checking bare-metal tests for JITDomain, shared by Spike, QEMU and the CVA6 RTL.
+Directed, self-checking tests for JITDomain, in two suites:
+
+- **Bare-metal tests**, `tests/t-*`: M-mode programs that drive the hardware interface directly. The same ELF runs on
+  Spike, QEMU and the CVA6 RTL.
+- **Linux user-space tests**, `user/u-*`: Linux programs for the user-space interface (the `PR_RISCV_JITDOMAIN`
+  `prctl`, the protection-key syscalls, signals). They run under QEMU linux-user only.
+
+`bench/` holds benchmarks, which are not tests (see [Benchmarks](#benchmarks)).
+
+Every test prints `<name>: N checks, M failures` and exits with a non-zero code on failure.
 
 > *Note:* The v1 suite (patched binutils, CHDOM/RETDOM, Verilator runner) is kept at tag `v1`.
 
-## Running
+## Quick start
 
-The simulators have no default path: set `SPIKE`, and `QEMU` or `CVA6_REPO_DIR` for the other simulators, in your
-environment or on the command line.
+The simulators have no default path. Set them in your environment or on the command line.
 
+```sh
+make run SPIKE=/path/to/spike                                   # bare-metal tests on Spike
+make run SIM=qemu QEMU=/path/to/qemu-system-riscv64             # ... on QEMU
+make run SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6           # ... on the CVA6 RTL (Verilator)
+make run-user QEMU_USER=/path/to/qemu-riscv64                   # Linux user-space tests
 ```
-export SPIKE=/path/to/spike   # a spike built from the jitdomain branch of riscv-isa-sim
-make run                      # build everything and run it on Spike
-make run-t-acc                # one test
-make run ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain
-make all QUICK=1              # sampled T-ACC, for Verilator
-make run KEYSRC=sv39          # keys from the page tables
-make run SIM=qemu QEMU=/path/to/qemu-system-riscv64   # on QEMU's spike machine
-make run SIM=cva6 QUICK=1     # on the CVA6 Verilator testbench, see below
-make trace-t-acc QUICK=1      # compare the last SIM=cva6 run of a test with Spike
+
+## Bare-metal tests
+
+### Requirements
+
+| Simulator | What to build | Variable |
+|---|---|---|
+| (all) | a stock `riscv64-unknown-elf-gcc` | `CROSS=` (prefix) |
+| Spike | Spike from the `jitdomain` branch of riscv-isa-sim | `SPIKE=` |
+| QEMU | `qemu-system-riscv64` from the `jitdomain` branch of the QEMU fork | `QEMU=` |
+| CVA6 | the Verilator testbench of a cva6 checkout, see [CVA6](#cva6) | `CVA6_REPO_DIR=` |
+
+The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`).
+
+### Running
+
+```sh
+make run                  # build everything and run it on $(SIM)
+make run-t-acc            # one test
+make all                  # build only
+make run KEYSRC=sv39      # keys from the page tables instead of PMP
+make run ISA=rv64imac_zicsr_zifencei_zicfilp_zicbom_zicboz_smrnmi_xjitdomain   # Spike without Zicntr
 ```
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `KEYSRC` | `pmp` | where keys come from: `pmp` (PMP entries, through `dmpcfg`) or `sv39` (Sv39 PTEs) |
-| `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
 | `SIM` | `spike` | simulator for `run` and `run-<test>`: `spike`, `qemu` or `cva6` |
-| `QUICK` | `0` | `1`: T-ACC tries three rights values per cell (none, exactly the needed right, all but it) instead of eight |
+| `KEYSRC` | `pmp` | where keys come from: `pmp` (PMP entries, through `dmpcfg`) or `sv39` (Sv39 PTEs) |
+| `QUICK` | `0` | `1`: `t-acc` tries three rights values per cell (none, exactly the needed right, all but it) instead of eight; use it on Verilator |
+| `PLATFORM` | `htif` | link address and console, from `env/platform/<name>/platform.mk` |
+| `ISA` | see `Makefile` | Spike's `--isa` |
+| `QEMU_CPU` | see `Makefile` | QEMU's `-cpu` |
 
 ELFs go to `build/<platform>-<keysrc>[-quick]/`. The `htif` ELFs load at `0x80000000` and use HTIF `tohost` for the
-console and the exit code, so the same file runs on Spike, QEMU (`spike` machine) and the CVA6 Verilator testbench.
+console and the exit code, which is why the same file runs everywhere.
 
-Requirements: a stock `riscv64-unknown-elf-gcc` and a Spike built from the `jitdomain` branch of riscv-isa-sim
-(`SPIKE=`). `SIM=qemu` needs a `qemu-system-riscv64` built from the `jitdomain` branch of the QEMU fork (`QEMU=`), run
-on the `spike` machine with `num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on Spike and CVA6), Smrnmi and Smdbltrp (so that
-`t-rnmi` can raise an RNMI through a double trap) and `xjitdomain` (`QEMU_CPU=`). The RNMI vectors are fixed at
-`LOAD_ADDR + 4` and `+ 8` by `env/crt.S`, which also sets `mnstatus.NMIE` and clears `mstatus.MDT` at boot.
-Spike runs with `--pmpregions=8`, CVA6's PMP count, and with Zicfilp and Smrnmi; `t-lpad` detects Zicfilp at run time
-and skips its ELP checks without it, as on CVA6, and `t-rnmi` skips itself without Smrnmi. Spike never takes an RNMI, so
-`t-rnmi` checks only `mnret` there. Each test prints `<name>: N checks, M failures` and exits with a non-zero code on
-failure.
+### Simulator configuration
 
-## CVA6
+The `Makefile` already passes these; they matter if you run an ELF by hand.
+
+- **Spike** runs with `--pmpregions=8` (CVA6's PMP count), Zicfilp and Smrnmi.
+- **QEMU** runs on the `spike` machine, with `num-pmp-regions=8`, Zicfilp, Svade (a clear A or D bit faults, as on
+  Spike and CVA6), Smrnmi with Smdbltrp (so that `t-rnmi` can raise an RNMI through a double trap) and `xjitdomain`.
+- **RNMI vectors** are fixed at `LOAD_ADDR + 4` and `+ 8` by `env/crt.S`, which also sets `mnstatus.NMIE` and clears
+  `mstatus.MDT` at boot.
+
+Some tests adapt to what the model supports:
+
+- `t-lpad` detects Zicfilp at run time and skips its ELP checks without it, as on CVA6.
+- `t-rnmi` skips itself without Smrnmi. Spike never takes an RNMI, so there `t-rnmi` checks only `mnret`.
+- `t-spec` skips itself on models without cache timing (Spike, QEMU).
+- `t-pte` is built only with `KEYSRC=sv39`.
+
+### CVA6
 
 `SIM=cva6` runs the suite on the CVA6 RTL, in its Verilator testbench, taken from the cva6 repo given by
 `CVA6_REPO_DIR`.
@@ -71,60 +106,20 @@ make run-t-drs SIM=cva6 QUICK=1 CVA6_REPO_DIR=/path/to/cva6
 make trace-t-drs QUICK=1
 ```
 
-## Linux user space
-
-`user/u-*.c` are Linux programs for the user-space interface: the `PR_RISCV_JITDOMAIN` `prctl` and the protection-key
-syscalls. They run under QEMU linux-user, with a `qemu-riscv64` built from the `jitdomain` branch of the QEMU fork
-(`QEMU_USER=`), and are built static with `riscv64-linux-gnu-gcc` (`LINUX_CC=`). ELFs go to `build/user/`.
-
-```sh
-make run-user QEMU_USER=/path/to/qemu-riscv64     # every user test
-make run-u-enable QEMU_USER=/path/to/qemu-riscv64 # one test
-```
-
-Each test exits with code 1 when the CPU lacks `xjitdomain` (`QEMU_USER_CPU=`, default `rv64,xjitdomain=true`), and
-otherwise prints `<name>: N checks, M failures` like the bare-metal tests.
-
-## Benchmark
-
-`make bench` builds and runs every benchmark in `bench/`, `make bench-<name>` one of them. They are not part of
-`make run`, and their numbers only mean something with `SIM=cva6`; see [`bench/README.md`](bench/README.md).
-
-```sh
-make bench-switch SIM=cva6 CVA6_REPO_DIR=/path/to/cva6
-```
-
-## Layout
-
-| Path | Content |
-|---|---|
-| `env/jitdomain.h` | CSR numbers, field layouts, causes; in assembly, `.insn` macros for `dl*`/`ds*`/`domcall`/`domret`/`domlpad` |
-| `env/crt.S` | entry, trap vector, `run_lower()` |
-| `env/harness.c` | trap handler, `printf`, `CHECK_*`, domain configuration helpers |
-| `env/keysrc-pmp.c` | `keysrc_reset()` and `key_set(page, key)` through PMP and `dmpcfg` |
-| `env/keysrc-sv39.c` | the same through the PTE key bits of an identity map |
-| `env/sv39.h` | PTE bits, `pte()`, `pte_key()` and `sv39_root()`, shared with `t-pte` |
-| `env/platform/htif/` | `platform.mk` (`LOAD_ADDR`, sources) and the HTIF console and exit |
-| `env/stubs.S` | the S/U-mode stubs the tests run |
-| `tests/t-*.c`, `tests/t-*.S` | one ELF per test ID, with its own stubs if it needs any; `t-pte` is built only with `KEYSRC=sv39` |
-| `bench/<name>.c`, `bench/<name>.S` | one ELF per benchmark (`make bench-<name>`) |
-| `user/user.c`, `user/user.h` | Linux tests: `prctl` and pkeys wrappers, `CHECK_*`, `TRY()` catching `SIGSEGV`/`SIGILL` |
-| `user/u-*.c` | one Linux program per user-space test (`make run-u-<name>`) |
-
-The toolchain needs no JITDomain support: the instructions are written with `.insn` (see `env/jitdomain.h`). A new
-platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
-`exit()`; the tests do not change.
-
-## How a test runs
+### How a test runs
 
 Each test is an M-mode monitor. It configures the domain state, then runs a stub in S or U mode with `run_lower(entry,
 priv, mdstatus, a0, a1)`, which enters the stub through `mret`. That way the domain (`MPD`) and a pending entry
-(`MPPEND`) come from the trap-return path. The stub does one thing and then executes `ecall`; the first trap ends it,
-and `run_lower` returns `mcause`, with the rest of the trap, all registers included, in `last_trap`. A trap taken in M
-mode skips the faulting instruction by its length, 2 or 4 bytes. The suite is built with C.
+(`MPPEND`) come from the trap-return path.
+
+The stub does one thing and then executes `ecall`. The first trap ends it: `run_lower` returns `mcause`, with the rest
+of the trap, all registers included, in `last_trap`. A trap taken in M mode skips the faulting instruction by its
+length, 2 or 4 bytes (the suite is built with C).
 
 Tests tag memory only through `dom_reset()`, `dom_disable()` and `key_set()`, so they run unchanged with either key
-source. With `KEYSRC=pmp`, `dom_reset()` builds a TOR chain over the 8 PMP entries:
+source.
+
+**`KEYSRC=pmp`**: `dom_reset()` builds a TOR chain over the 8 PMP entries.
 
 | PMP entry | Region | Key |
 |---|---|---|
@@ -136,33 +131,83 @@ All entries are RWX, so only the domain check can deny an access. The stacks, ab
 out of reach of S and U mode. `dom_reset()` sets `dstatus = EN | DRSKEY=7` and leaves the other CSRs at their reset
 values.
 
-With `KEYSRC=sv39`, `dom_reset()` builds an identity map of the image, the pages and the DRS with 4 KiB leaves, all
-RWX, A and D set: the image has key 0, `pages[k]` key `k`, the DRS key 7, and the stacks are not mapped. S mode cannot
-fetch from U pages, so there are two copies of the tables, one with U leaves and one with S leaves; `run_lower()` sets
-`satp` for the stub's privilege. Both trees also map the image's 1 GiB region as one S page at `0xc0000000`, so that S
-mode can run image code while the U tables are active, as a trap handler delegated to S mode must
-(`keysrc_s_alias()`). `key_set(k, key)` retags only `pages[k]`. With `dstatus.EN = 0` the key bits are reserved again,
-so `dom_disable()` clears every key first. One PMP entry covers the map, and its key is ignored.
+**`KEYSRC=sv39`**: `dom_reset()` builds an identity map of the image, the pages and the DRS with 4 KiB leaves, all
+RWX, A and D set: the image has key 0, `pages[k]` key `k`, the DRS key 7, and the stacks are not mapped.
+
+- S mode cannot fetch from U pages, so there are two copies of the tables, one with U leaves and one with S leaves;
+  `run_lower()` sets `satp` for the stub's privilege.
+- Both trees also map the image's 1 GiB region as one S page at `0xc0000000`, so that S mode can run image code while
+  the U tables are active, as a trap handler delegated to S mode must (`keysrc_s_alias()`).
+- `key_set(k, key)` retags only `pages[k]`.
+- With `dstatus.EN = 0` the key bits are reserved again, so `dom_disable()` clears every key first.
+- One PMP entry covers the map, and its key is ignored.
 
 M mode never translates, so the locked-PMP checks in `t-acc` run only with `KEYSRC=pmp`.
 
-## Status
+## Linux user-space tests
 
-| ID | Test | State |
-|---|---|---|
-| T-ACC | `t-acc` | done: every `(e, k, rights)` for load, store, AMO, LR and fetch; SC in a `domcall` callee after an LR in the caller; `cbo.*` (skipped without Zicbom); SCHK; locked PMP in M mode |
-| T-TYPED | `t-typed` | done; also covers T-ORD |
-| T-ORD | `t-typed` | done |
-| T-CSR | `t-csr` | done |
-| T-PTE | `t-pte` | done: key per mapping, non-leaf keys, keys with `EN = 0`, PTE checks first, `dmpcfg` ignored, superpages |
-| T-LPAD | `t-lpad` | done: pad matching, alignment, pad fetch rights, gate, own domain, pads without `domcall`, plain jumps, Zicfilp ELP |
-| T-DRS | `t-drs` | done: round trip, `domret` target and domain, nesting 64 deep, bad `dsp` and records, `DRSKEY`, U/S access to DRS pages |
-| T-DSP | `t-dsp` | done: `udsp` reads (every read form) and writes from DOM0, `DSP` faults from DOM1-7 (also out of range), `EN = 0`, the `[dsp, dspbase]` range for every write form with both ends, `dsp > dspbase` left by S mode, `dspbase` at reset, push/pop after a reset, a misaligned reset, nested bases right and wrong |
-| T-TRAP | `t-trap` | done: `ecall`/`ebreak`/faults in DOM1 and resuming it, `mret`/`sret` restoring a pending entry and clearing `xPPEND`, an interrupt at a pad, traps into S mode, domain faults delegated to S mode |
-| T-RNMI | `t-rnmi` | done: `mndstatus` mask, `mnret` restoring the domain and clearing `MNPPEND`; RNMI entry with an entry pending and an RNMI exception saving into `mdstatus` (with Smdbltrp, so QEMU only); skipped without Smrnmi |
-| T-FLUSH | `t-flush` | done: loads, stores, typed loads and fetches right after `domlpad`, `domret`, `mret`/`sret` (with and without a pending entry) and a trap into S mode, each allowed only for the new domain, then only for the old one; a `domcall` right after `domlpad`, checked against the new domain's gates |
-| T-SIG | `user/u-*` | in progress, QEMU linux-user only: `u-enable` (before and after `ENABLE`, existing and new threads, a second `ENABLE`), `u-pkey` (allocation order, `ENOSPC`, freeing, which keys `pkey_mprotect` accepts), `u-matrix` (round trip, rejected values, `dgate` seen by `domcall` in another thread), `u-access` (DOM0's loads, stores, LR/AMOs, typed accesses, `cbo` and fetches per key and right, page protection first, accesses across pages, a change seen by another thread, syscalls unchecked), `u-drs` (`DRS_ALLOC`: rejected calls, size rounding, guard pages on both sides, no access or retagging from DOM0, a round trip into DOM1, overflow and underflow, threads without a DRS, unmapped at thread exit, a mapping over it losing the DRS key), `u-domain` (DOM1-7's loads, stores, LR/AMOs, typed accesses and fetches against their own row, no key 0 data, the handler of a fault in a domain running in DOM0), `u-sigsys` (syscalls from DOM1 and DOM7 not executed: `SET_MATRICES`, `pkey_mprotect`, `write`, `riscv_flush_icache`; `SIGSYS` with `SYS_SECCOMP`, the syscall number, the call address and the arch; pc past the `ecall`, `a0` unchanged, the handler in DOM0), `u-fault` (`si_pkey` on domain access faults, `si_addr` = pc on CFI faults, the `JDSG` record in every frame with `EN = 1`: interrupted `curdom` with the pending entry, `dsp`, `dcause` for CFI faults only; no record without `EN`); still todo: signals, `fork`/`exec`, a VM↔JIT crossing |
-| T-SPEC | `t-spec` | done: a load denied by the domain check feeds a probe load; no probe line ends up in the data cache, while the same stub with the secret readable caches exactly its line. Skipped on models without cache timing (Spike, QEMU) |
-| T-DEPUTY | `t-deputy` | done: the OOB, forged data pointer and DOM0 primitive chain with `EN = 0` and `EN = 1`; prints which steps JITDomain stops and who owns the others |
+They need a `qemu-riscv64` (linux-user) built from the `jitdomain` branch of the QEMU fork (`QEMU_USER=`) and
+`riscv64-linux-gnu-gcc` (`LINUX_CC=`). They are built static, into `build/user/`.
 
-Not covered yet: `dmpcfg1` (illegal with 8 PMP entries).
+```sh
+make run-user QEMU_USER=/path/to/qemu-riscv64       # every user test
+make run-u-enable QEMU_USER=/path/to/qemu-riscv64   # one test
+```
+
+Each test exits with code 1 when the CPU lacks `xjitdomain` (`QEMU_USER_CPU=`, default `rv64,xjitdomain=true`).
+
+## Benchmarks
+
+`make bench` builds and runs every benchmark in `bench/`, `make bench-<name>` one of them. They are not part of
+`make run`, and their numbers only mean something with `SIM=cva6`; see [`bench/README.md`](bench/README.md).
+
+```sh
+make bench-switch SIM=cva6 CVA6_REPO_DIR=/path/to/cva6
+```
+
+## Layout
+
+```
+env/      bare-metal harness: boot, trap handler, CHECK_*, key sources, platforms, the .insn macros
+tests/    one bare-metal test per t-<name>.c, with its stubs in t-<name>.S
+user/     one Linux test per u-<name>.c, and their shared helpers in user.c
+bench/    one benchmark per <name>.c, with its stubs in <name>.S
+tools/    the CVA6 runner and the CVA6/Spike trace comparison
+```
+
+A new platform (the ZCU104, for instance) adds `env/platform/<name>/` with its `LOAD_ADDR`, `platform_putchar()` and
+`exit()`; the tests do not change.
+
+## Tests
+
+One line per test. The comment at the top of each test file says what it checks in detail.
+
+### Bare-metal tests
+
+| Test | Checks |
+|---|---|
+| `t-acc` | the access check for every access kind, key and rights value |
+| `t-typed` | domain-typed loads and stores, and ordinary accesses next to them |
+| `t-csr` | reset values, field masks and access rules of the JITDomain CSRs |
+| `t-pte` | keys from Sv39 PTEs (`KEYSRC=sv39` only) |
+| `t-lpad` | `domcall` landing on a matching, aligned `domlpad` |
+| `t-drs` | the domain return stack that `domcall` pushes and `domret` pops |
+| `t-dsp` | `udsp`, DOM0's view of `dsp`, kept within `[dsp, dspbase]` |
+| `t-trap` | traps and `xret` saving and restoring the domain and a pending entry |
+| `t-rnmi` | the same for RNMIs and `mnret` (needs Smrnmi) |
+| `t-flush` | the instruction right after a domain change using the new domain's rights |
+| `t-spec` | no transient data from a denied load (needs cache timing, so CVA6 only) |
+| `t-deputy` | which steps of a JIT exploit chain JITDomain stops |
+
+### Linux user-space tests
+
+| Test | Checks |
+|---|---|
+| `u-enable` | `PR_JITDOMAIN_ENABLE`, for the whole process and its threads |
+| `u-pkey` | `pkey_alloc`, `pkey_free` and `pkey_mprotect` |
+| `u-matrix` | `SET_MATRICES` and `GET_MATRICES`, and the new matrices reaching other threads |
+| `u-access` | DOM0's accesses against the matrices and page keys |
+| `u-domain` | DOM1-7's accesses, each against its own row |
+| `u-drs` | `DRS_ALLOC`: a per-thread DRS between guard pages |
+| `u-sigsys` | syscalls from DOM1-7 refused with `SIGSYS` |
+| `u-fault` | what a fault tells the handler: `si_pkey`, `si_addr`, the `JDSG` record in the signal frame |

@@ -1,4 +1,4 @@
-// T-DRS: the Domain Return Stack that domcall pushes and domret pops. The
+// t-drs: the Domain Return Stack that domcall pushes and domret pops. The
 // DRS pages have key 7, on which no domain has rights: implicit DRS accesses
 // need none.
 

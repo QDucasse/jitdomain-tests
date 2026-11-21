@@ -1,4 +1,4 @@
-// T-SPEC: a load denied by the domain check returns no data, not even
+// t-spec: a load denied by the domain check returns no data, not even
 // transiently. A stub indexes a probe array with the secret, and the monitor
 // then times each probe line. Without cache timing (Spike, QEMU) calibration
 // sees no hit/miss difference, and the test skips itself.

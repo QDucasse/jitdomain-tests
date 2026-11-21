@@ -1,4 +1,4 @@
-// T-LPAD: domcall must land on a matching, 4-byte aligned domlpad. The pads
+// t-lpad: domcall must land on a matching, 4-byte aligned domlpad. The pads
 // are copied into page k, key k; each records curdom in s2, then ecalls.
 
 #include "env.h"

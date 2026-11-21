@@ -1,4 +1,4 @@
-// T-DRS stubs and snippets. Callers run from the image; the snippets are
+// t-drs stubs and snippets. Callers run from the image; the snippets are
 // copied into test pages, so they are position independent and use no
 // compressed instructions apart from the explicit c.nop.
 

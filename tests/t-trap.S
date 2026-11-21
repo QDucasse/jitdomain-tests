@@ -1,4 +1,4 @@
-// T-TRAP stubs and snippets. Callers and the S-mode handler run from the
+// t-trap stubs and snippets. Callers and the S-mode handler run from the
 // image; the snippets are copied into test pages, so they are position
 // independent and use no compressed instructions.
 

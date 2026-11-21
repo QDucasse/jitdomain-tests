@@ -1,4 +1,4 @@
-// T-DEPUTY JIT code and runtime primitives. The JIT snippets are copied into
+// t-deputy JIT code and runtime primitives. The JIT snippets are copied into
 // the code zone and read their arguments from a heap frame at a0; the
 // primitives run in DOM0 from the image.
 

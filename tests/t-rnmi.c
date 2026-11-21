@@ -1,4 +1,4 @@
-// T-RNMI: an RNMI saves {curdom, dpend} in mndstatus and enters DOM0; mnret
+// t-rnmi: an RNMI saves {curdom, dpend} in mndstatus and enters DOM0; mnret
 // restores both and clears MNPPEND. The mnret checks need Smrnmi; the RNMI
 // itself comes from an M-mode double trap, so its checks need Smdbltrp too.
 

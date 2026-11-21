@@ -1,4 +1,4 @@
-// T-DEPUTY: which steps of a JIT exploit chain JITDomain stops, and which it
+// t-deputy: which steps of a JIT exploit chain JITDomain stops, and which it
 // leaves to software. The chain follows NoJITsu's SpiderMonkey exploit
 // (CVE-2019-11707). Each step runs with dstatus.EN = 0, then 1, and the test
 // prints both outcomes with the owner of the step.

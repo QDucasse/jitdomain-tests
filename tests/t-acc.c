@@ -1,4 +1,4 @@
-// T-ACC: the access check, for every access kind and the rights each one
+// t-acc: the access check, for every access kind and the rights each one
 // needs, and which privilege levels it applies to.
 
 #include "env.h"

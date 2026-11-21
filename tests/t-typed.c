@@ -1,6 +1,6 @@
-// T-TYPED: domain-typed loads and stores. A typed access executed in
+// t-typed: domain-typed loads and stores. A typed access executed in
 // domain d is checked as e = dtarget[d]; dtarget resets to the identity.
-// Also covers T-ORD: an ordinary access to the same page uses e = curdom.
+// An ordinary access to the same page uses e = curdom.
 
 #include "env.h"
 

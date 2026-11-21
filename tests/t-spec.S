@@ -1,4 +1,4 @@
-// T-SPEC stubs
+// t-spec stubs
 
 #include "jitdomain.h"
 

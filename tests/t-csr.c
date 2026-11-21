@@ -1,4 +1,4 @@
-// T-CSR: reset values, field masks, and access rules of the JITDomain CSRs.
+// t-csr: reset values, field masks, and access rules of the JITDomain CSRs.
 // curdom and dcause cannot be written at any privilege; only curdom is
 // readable from U mode.
 

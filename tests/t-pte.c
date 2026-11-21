@@ -1,4 +1,4 @@
-// T-PTE: keys from Sv39 PTEs (KEYSRC=sv39 only). The checks edit an alias of
+// t-pte: keys from Sv39 PTEs (KEYSRC=sv39 only). The checks edit an alias of
 // the test pages, never the identity map the code runs from:
 //   root[1] -> l1    l1[0] -> l0    l0[k] = pages[k], key k
 //                    l1[1] = a 2 MiB leaf over the image's region, key 0

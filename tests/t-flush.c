@@ -1,4 +1,4 @@
-// T-FLUSH: the instruction right after a domain change uses the new domain's
+// t-flush: the instruction right after a domain change uses the new domain's
 // rights, and no access reuses rights cached for another domain or kind.
 // Each case runs twice, allowed only for the new domain, then only for the
 // old one, so a pipeline that checks with a stale domain fails one of them.

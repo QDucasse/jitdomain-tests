@@ -1,4 +1,4 @@
-// T-DSP stubs. Every udsp access writes the old value to a1, so that the
+// t-dsp stubs. Every udsp access writes the old value to a1, so that the
 // test can check that a faulting one leaves rd alone. The callee is copied
 // into page 1, so it is position independent.
 

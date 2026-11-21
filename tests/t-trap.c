@@ -1,4 +1,4 @@
-// T-TRAP: traps save {curdom, dpend} in xPD/xPPEND and enter DOM0; xret
+// t-trap: traps save {curdom, dpend} in xPD/xPPEND and enter DOM0; xret
 // restores both and clears xPPEND. Interrupts are supervisor software
 // interrupts raised through mip.SSIP, so no platform timer is needed.
 

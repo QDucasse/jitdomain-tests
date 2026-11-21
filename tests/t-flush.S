@@ -1,4 +1,4 @@
-// T-FLUSH stubs and snippets. Callers and the S-mode handler run from the
+// t-flush stubs and snippets. Callers and the S-mode handler run from the
 // image; the snippets are copied into test pages, so they are position
 // independent and use no compressed instructions. In each one the access
 // under test comes right after the domain change, with nothing in between.

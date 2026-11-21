@@ -1,4 +1,4 @@
-// T-DSP: udsp, the U-mode alias of dsp. Only DOM0 may access it, with
+// t-dsp: udsp, the U-mode alias of dsp. Only DOM0 may access it, with
 // dstatus.EN = 1, and a write must stay in [dsp, dspbase], so DOM0 can
 // discard DRS records but never bring popped ones back.
 
