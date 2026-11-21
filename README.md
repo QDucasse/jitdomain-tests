@@ -213,3 +213,4 @@ One line per test. The comment at the top of each test file says what it checks 
 | `u-fault` | what a fault tells the handler: `si_pkey`, `si_addr`, the `JDSG` record in the signal frame |
 | `u-signal` | what `sigreturn` restores: the interrupted domain, its pending entry and `dsp`, or DOM0 |
 | `u-fork` | what `fork` copies: the process's domain state, the forking thread's DRS and saved signal contexts |
+| `u-jit` | a small VM running generated code in DOM1: entries, trampolines, typed loads, DRS bases, patching, signals |
