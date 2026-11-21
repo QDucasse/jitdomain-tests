@@ -212,3 +212,4 @@ One line per test. The comment at the top of each test file says what it checks 
 | `u-sigsys` | syscalls from DOM1-7 refused with `SIGSYS` |
 | `u-fault` | what a fault tells the handler: `si_pkey`, `si_addr`, the `JDSG` record in the signal frame |
 | `u-signal` | what `sigreturn` restores: the interrupted domain, its pending entry and `dsp`, or DOM0 |
+| `u-fork` | what `fork` copies: the process's domain state, the forking thread's DRS and saved signal contexts |
