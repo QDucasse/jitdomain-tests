@@ -211,3 +211,4 @@ One line per test. The comment at the top of each test file says what it checks 
 | `u-drs` | `DRS_ALLOC`: a per-thread DRS between guard pages |
 | `u-sigsys` | syscalls from DOM1-7 refused with `SIGSYS` |
 | `u-fault` | what a fault tells the handler: `si_pkey`, `si_addr`, the `JDSG` record in the signal frame |
+| `u-signal` | what `sigreturn` restores: the interrupted domain, its pending entry and `dsp`, or DOM0 |
