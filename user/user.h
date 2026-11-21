@@ -88,6 +88,7 @@ static inline struct jitdomain_matrices permissive(void)
 
 extern int checks, failures;
 extern __thread sigjmp_buf fault_jb;
+extern __thread volatile int fault_armed;
 extern __thread volatile struct fault { int sig, code; uintptr_t addr; } last_fault;
 
 #define CHECK_EQ(got, want) do { \
@@ -110,9 +111,14 @@ extern __thread volatile struct fault { int sig, code; uintptr_t addr; } last_fa
 // Run stmt, catching SIGSEGV and SIGILL; the signal number, or 0
 #define TRY(stmt) ({ \
     last_fault.sig = 0; \
-    if (!sigsetjmp(fault_jb, 1)) { stmt; } \
+    if (!sigsetjmp(fault_jb, 1)) { fault_armed = 1; stmt; } \
+    fault_armed = 0; \
     last_fault.sig; \
   })
+
+// From a handler: back to the TRY in progress. Outside one, the signal is
+// unexpected and the test stops, rather than resume an earlier TRY.
+__attribute__((noreturn)) void fault_return(int sig);
 
 // Installs the handlers and exits if the hart lacks the extension; the
 // test calls it first

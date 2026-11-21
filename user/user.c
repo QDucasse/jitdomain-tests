@@ -2,7 +2,18 @@
 
 int checks, failures;
 __thread sigjmp_buf fault_jb;
+__thread volatile int fault_armed;
 __thread volatile struct fault last_fault;
+
+void fault_return(int sig)
+{
+  if (!fault_armed) {
+    printf("FAIL: signal %d outside TRY\n", sig);
+    _exit(2);
+  }
+  fault_armed = 0;
+  siglongjmp(fault_jb, 1);
+}
 
 static void handler(int sig, siginfo_t *si, void *uc)
 {
@@ -10,7 +21,7 @@ static void handler(int sig, siginfo_t *si, void *uc)
   last_fault.sig = sig;
   last_fault.code = si->si_code;
   last_fault.addr = (uintptr_t)si->si_addr;
-  siglongjmp(fault_jb, 1);
+  fault_return(sig);
 }
 
 void user_init(void)

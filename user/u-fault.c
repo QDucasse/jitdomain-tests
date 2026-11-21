@@ -53,7 +53,7 @@ static void handler(int sig, siginfo_t *si, void *ucv)
     h = (const void *)((const uint8_t *)h + h->size);
   }
   last_fault.sig = sig;
-  siglongjmp(fault_jb, 1);
+  fault_return(sig);
 }
 
 static int fault(void (*fn)(void))

@@ -43,7 +43,7 @@ static void sigsys_handler(int sig, siginfo_t *si, void *ucv)
   sys_info.a0 = uc->uc_mcontext.__gregs[10];
   sys_info.dom = csr_read(CSR_CURDOM) & CURDOM_DOM;
   last_fault.sig = sig;
-  siglongjmp(fault_jb, 1);
+  fault_return(sig);
 }
 
 // In DOMd: ecall with a7 = nr, a0-a2 = args, a3 = a4 = 0, then domret. at gets the

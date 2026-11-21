@@ -111,7 +111,7 @@ static void handler(int sig, siginfo_t *si, void *ucv)
   if ((sig == SIGSEGV || sig == SIGILL) && mode != M_LAZY) {
     last_fault.sig = sig;
     depth = 0;
-    siglongjmp(fault_jb, 1);
+    fault_return(sig);
   }
 
   switch (mode) {
